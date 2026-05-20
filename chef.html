@@ -6,192 +6,84 @@
   <meta name="theme-color" content="#1b5e20"/>
   <title>Эколавка — Кухня</title>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Geologica:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:#0d1f12;color:#fff;font-family:'Geologica',sans-serif;min-height:100vh;}
-    ::-webkit-scrollbar{width:6px;}
-    ::-webkit-scrollbar-track{background:#1a3320;}
-    ::-webkit-scrollbar-thumb{background:#4caf50;border-radius:3px;}
-
-    .header{background:#111f14;border-bottom:3px solid #2e7d32;padding:16px 36px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-    .logo{display:flex;align-items:center;gap:12px;}
-    .logo-emoji{font-size:38px;}
-    .logo-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#4caf50;letter-spacing:-1px;}
-    .logo-sub{font-size:12px;color:#66bb6a;margin-top:2px;}
-    .clock{font-family:'Unbounded',sans-serif;font-size:34px;font-weight:900;letter-spacing:2px;text-align:right;}
-    .date-lbl{font-size:12px;color:#66bb6a;margin-top:4px;text-transform:capitalize;text-align:right;}
-
-    .main{max-width:1300px;margin:0 auto;padding:28px 28px;}
-
-    /* Connection status */
-    .conn-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;borderRadius:10px;margin-bottom:20px;font-size:13px;}
-    .conn-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-
-    /* Date banner */
-    .date-banner{background:#111f14;border:2px solid #2e7d32;border-radius:16px;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
-    .date-banner-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:700;color:#66bb6a;text-transform:capitalize;}
-    .date-stats{display:flex;gap:20px;align-items:center;}
+    ::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:#1a3320;} ::-webkit-scrollbar-thumb{background:#4caf50;border-radius:3px;}
+    .header{background:#111f14;border-bottom:3px solid #2e7d32;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:12px;}
+    .logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+    .logo-emoji{font-size:34px;}
+    .logo-title{font-family:'Unbounded',sans-serif;font-size:19px;font-weight:900;color:#4caf50;letter-spacing:-1px;}
+    .logo-sub{font-size:11px;color:#66bb6a;margin-top:2px;}
+    .clock{font-family:'Unbounded',sans-serif;font-size:28px;font-weight:900;letter-spacing:2px;text-align:right;}
+    .date-lbl{font-size:11px;color:#66bb6a;margin-top:3px;text-transform:capitalize;text-align:right;}
+    #call-btn{padding:9px 18px;background:#e65100;color:#fff;border:none;border-radius:28px;font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(230,81,0,0.4);transition:all 0.2s;white-space:nowrap;}
+    #call-btn:hover:not(:disabled){background:#bf360c;transform:scale(1.03);}
+    #call-btn:disabled{opacity:0.65;cursor:default;}
+    @keyframes callPulse{0%,100%{box-shadow:0 3px 12px rgba(230,81,0,0.4)}50%{box-shadow:0 3px 20px rgba(230,81,0,0.7)}}
+    #call-btn:not(:disabled){animation:callPulse 2s infinite;}
+    #chat-btn{position:fixed;bottom:24px;right:24px;width:50px;height:50px;border-radius:50%;background:#2e7d32;border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(46,125,50,0.5);z-index:400;}
+    .main{max-width:1300px;margin:0 auto;padding:24px 24px;}
+    @keyframes flashBanner{0%,100%{opacity:1;transform:translateY(0);}50%{opacity:0.85;transform:translateY(-3px);}}
+    #notify-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;padding:16px 28px;align-items:center;gap:14px;box-shadow:0 4px 32px rgba(76,175,80,0.5);font-family:'Unbounded',sans-serif;}
+    #notify-banner .bell{font-size:36px;}
+    #notify-banner .msg-title{font-size:16px;font-weight:700;}
+    #notify-banner .msg-sub{font-size:12px;font-weight:400;margin-top:3px;opacity:0.9;font-family:'Geologica',sans-serif;}
+    #notify-banner .close-n{background:rgba(255,255,255,0.25);border:none;color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Geologica',sans-serif;font-weight:600;white-space:nowrap;}
+    .date-banner{background:#111f14;border:2px solid #2e7d32;border-radius:14px;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+    .date-banner-title{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:#66bb6a;text-transform:capitalize;}
+    .date-stats{display:flex;gap:18px;align-items:center;}
     .stat{text-align:center;}
-    .stat-num{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#4caf50;}
-    .stat-lbl{font-size:11px;color:#4a7f4e;margin-top:2px;}
-
-    /* Progress */
-    .progress-wrap{margin-bottom:24px;}
-    .progress-top{display:flex;justify-content:space-between;font-size:13px;color:#66bb6a;margin-bottom:8px;}
-    .progress-bar{height:10px;background:#1a3320;border-radius:10px;overflow:hidden;}
+    .stat-num{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;color:#4caf50;line-height:1;}
+    .stat-lbl{font-size:10px;color:#4a7f4e;margin-top:2px;}
+    .progress-wrap{margin-bottom:20px;}
+    .progress-top{display:flex;justify-content:space-between;font-size:12px;color:#66bb6a;margin-bottom:7px;}
+    .progress-bar{height:9px;background:#1a3320;border-radius:10px;overflow:hidden;}
     .progress-fill{height:100%;background:linear-gradient(90deg,#2e7d32,#66bb6a);border-radius:10px;transition:width 0.5s ease;}
-
-    /* Dish grid */
-    .dish-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;margin-bottom:32px;}
-
-    /* Dish card */
-    .dish-card{background:#111f14;border:2px solid #2e7d32;border-radius:18px;padding:22px;position:relative;transition:all 0.3s;}
+    .dish-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:28px;}
+    .dish-card{background:#111f14;border:2px solid #2e7d32;border-radius:16px;padding:20px;position:relative;transition:all 0.3s;}
     .dish-card.done{border-color:#1a3320;opacity:0.4;}
-    .dish-card:not(.done){cursor:default;}
-
-    .dish-hdr{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;}
-    .dish-emoji{font-size:48px;flex-shrink:0;}
-    .dish-info{flex:1;}
-    .dish-name{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:10px;}
-    .portions-row{display:flex;align-items:baseline;gap:8px;}
-    .portions-big{font-family:'Unbounded',sans-serif;font-size:48px;font-weight:900;color:#4caf50;line-height:1;}
-    .portions-lbl{font-size:14px;color:#66bb6a;font-weight:500;}
-
-    /* Done button */
-    .done-btn{position:absolute;top:16px;right:16px;width:42px;height:42px;border-radius:50%;border:2px solid #2e7d32;background:transparent;color:#2e7d32;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-family:'Geologica',sans-serif;}
-    .done-btn:hover{background:#2e7d32;color:#fff;transform:scale(1.1);}
+    .dish-hdr{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;}
+    .dish-emoji{font-size:44px;flex-shrink:0;}
+    .dish-name{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:8px;}
+    .portions-row{display:flex;align-items:baseline;gap:7px;}
+    .portions-big{font-family:'Unbounded',sans-serif;font-size:42px;font-weight:900;color:#4caf50;line-height:1;}
+    .portions-lbl{font-size:13px;color:#66bb6a;font-weight:500;}
+    .done-btn{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:2px solid #2e7d32;background:transparent;color:#2e7d32;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+    .done-btn:hover{background:#2e7d32;color:#fff;}
     .done-btn.active{background:#4caf50;border-color:#4caf50;color:#fff;}
     .done-btn.active:hover{background:#388e3c;}
-
-    /* Ingredients */
-    .ing-list{border-top:1px solid #1e3d25;padding-top:12px;margin-top:4px;}
-    .ing-lbl{font-size:10px;color:#4caf50;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin-bottom:8px;}
-    .ing-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #172d1e;}
+    .ing-list{border-top:1px solid #1e3d25;padding-top:10px;margin-top:10px;}
+    .ing-lbl{font-size:9px;color:#4caf50;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin-bottom:7px;}
+    .ing-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid #172d1e;}
     .ing-row:last-child{border-bottom:none;}
-    .ing-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#4caf50;}
-    .ing-name{flex:1;font-size:13px;color:#c8e6c9;}
-    .ing-amt{font-size:13px;font-weight:700;color:#fff;background:#1e3d25;padding:2px 9px;border-radius:7px;white-space:nowrap;}
-
-    /* Grocery */
-    .section-title{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;color:#4caf50;margin-bottom:14px;}
-    .grocery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-bottom:32px;}
-    .grocery-chip{background:#111f14;border:1.5px solid #2e7d32;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;}
-    .grocery-name{flex:1;font-size:13px;color:#c8e6c9;font-weight:500;}
-    .grocery-amt{font-size:13px;font-weight:700;color:#4caf50;}
-
-    /* Empty */
-    .empty{text-align:center;padding:100px 20px;}
-    .empty-icon{font-size:72px;margin-bottom:20px;}
-    .empty-title{font-family:'Unbounded',sans-serif;font-size:20px;color:#2e7d32;margin-bottom:10px;}
-    .empty-sub{font-size:14px;color:#1a3320;}
-
-    /* Footer */
-    .footer{text-align:center;font-size:12px;color:#1e3d25;padding:20px 0 30px;}
-
-    @media(max-width:700px){
-      .header{padding:12px 16px;}
-      .clock{font-size:24px;}
-      .main{padding:16px 12px;}
-      .dish-grid{grid-template-columns:1fr;}
-      .portions-big{font-size:36px;}
-    }
-    @keyframes flashBanner {
-      0%,100%{opacity:1;transform:translateY(0);}
-      50%{opacity:0.85;transform:translateY(-3px);}
-    }
-    #notify-banner {
-      display:none;
-      position:fixed;
-      top:0; left:0; right:0;
-      z-index:999;
-      background:linear-gradient(135deg,#4caf50,#2e7d32);
-      color:#fff;
-      padding:20px 36px;
-      align-items:center;
-      gap:16px;
-      box-shadow:0 4px 32px rgba(76,175,80,0.5);
-      font-family:'Unbounded',sans-serif;
-    }
-    #notify-banner .bell { font-size:40px; animation: bellRing 0.5s ease 3; }
-    @keyframes bellRing {
-      0%,100%{transform:rotate(0deg);}
-      25%{transform:rotate(-20deg);}
-      75%{transform:rotate(20deg);}
-    }
-    #notify-banner .msg { flex:1; }
-    #notify-banner .msg-title { font-size:18px; font-weight:700; }
-    #notify-banner .msg-sub { font-size:13px; font-weight:400; margin-top:4px; opacity:0.9; font-family:'Geologica',sans-serif; }
-    #notify-banner .close-n { background:rgba(255,255,255,0.25); border:none; color:#fff; padding:8px 16px; border-radius:20px; font-size:13px; cursor:pointer; font-family:'Geologica',sans-serif; font-weight:600; white-space:nowrap; }
-    #notify-banner .close-n:hover { background:rgba(255,255,255,0.4); }
-
-    /* Call admin button — in header */
-    #call-btn {
-      padding: 10px 20px;
-      background: #e65100;
-      color: #fff;
-      border: none;
-      border-radius: 30px;
-      font-family: 'Unbounded', sans-serif;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 3px 12px rgba(230,81,0,0.4);
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    #call-btn:hover:not(:disabled) { background: #bf360c; transform: scale(1.03); }
-    #call-btn:disabled { opacity: 0.65; cursor: default; }
-    @keyframes callPulse { 0%,100%{box-shadow:0 3px 12px rgba(230,81,0,0.4)} 50%{box-shadow:0 3px 20px rgba(230,81,0,0.7)} }
-    #call-btn:not(:disabled) { animation: callPulse 2s infinite; }
-
-    /* Chat button */
-    #chat-btn {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background: #2e7d32;
-      border: none;
-      color: #fff;
-      font-size: 22px;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(46,125,50,0.5);
-      z-index: 400;
-      position: fixed;
-    }
+    .ing-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:#4caf50;}
+    .ing-name{flex:1;font-size:12px;color:#c8e6c9;}
+    .ing-amt{font-size:12px;font-weight:700;color:#fff;background:#1e3d25;padding:2px 8px;border-radius:7px;white-space:nowrap;}
+    .section-title{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;color:#4caf50;margin-bottom:12px;}
+    .footer{text-align:center;font-size:11px;color:#1e3d25;padding:16px 0 28px;}
+    /* Chat panel */
+    #chat-panel{display:none;position:fixed;bottom:82px;right:24px;width:310px;max-height:480px;background:#fff;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,0.2);border:1.5px solid #e8f5e9;flex-direction:column;z-index:500;}
+    #chat-messages{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px;min-height:160px;max-height:280px;}
+    @media(max-width:700px){.header{padding:10px 14px;}.clock{font-size:20px;}.main{padding:14px 10px;}.dish-grid{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
 
-<!-- Notification banner -->
 <div id="notify-banner">
   <span class="bell">🔔</span>
-  <div class="msg">
-    <div class="msg-title">Администратор отправил меню!</div>
-    <div class="msg-sub">Проверьте список блюд и приступайте к приготовлению</div>
-  </div>
+  <div style="flex:1"><div class="msg-title">Администратор отправил меню!</div><div class="msg-sub">Проверьте список блюд и приступайте</div></div>
   <button class="close-n" onclick="closeNotification()">✕ Закрыть</button>
 </div>
 
 <header class="header">
   <div class="logo">
     <span class="logo-emoji">🌿</span>
-    <div>
-      <div class="logo-title">Эколавка</div>
-      <div class="logo-sub">Кухня · Меню дня</div>
-    </div>
+    <div><div class="logo-title">Эколавка</div><div class="logo-sub">Кухня · Меню дня</div></div>
   </div>
-  <!-- Call button in center -->
-  <button id="call-btn" onclick="callAdmin()">
-    📞 Вызвать администратора
-  </button>
+  <button id="call-btn" onclick="callAdmin()">📞 Вызвать администратора</button>
   <div>
     <div class="clock" id="clock">--:--:--</div>
     <div class="date-lbl" id="today-lbl">—</div>
@@ -199,126 +91,128 @@
 </header>
 
 <main class="main" id="main">
-  <div class="empty">
-    <div class="empty-icon">🔌</div>
-    <div class="empty-title">Подключение...</div>
-    <div class="empty-sub">Загружаем меню от администратора</div>
+  <div style="text-align:center;padding:80px 20px;">
+    <div style="font-size:48px;margin-bottom:16px;">🔌</div>
+    <div style="font-family:'Unbounded',sans-serif;font-size:16px;color:#2e7d32;">Подключение...</div>
   </div>
 </main>
 
-<!-- Chat floating button -->
-<button id="chat-btn" onclick="toggleChat()">💬 <span id="chat-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#e53935;color:#fff;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;">0</span></button>
+<button id="chat-btn" onclick="toggleChat()">💬</button>
+<span id="chat-badge" style="display:none;position:fixed;bottom:58px;right:18px;width:18px;height:18px;border-radius:50%;background:#e53935;color:#fff;font-size:10px;font-weight:700;align-items:center;justify-content:center;z-index:401;">0</span>
 
-<!-- Chat panel -->
-<div id="chat-panel" style="display:none;position:fixed;bottom:80px;right:24px;width:320px;max-height:500px;background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.2);border:1.5px solid #e8f5e9;display:none;flex-direction:column;z-index:500;">
-  <div style="background:#2e7d32;border-radius:18px 18px 0 0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;color:#fff;">💬 Чат с администратором</div>
-    <button onclick="toggleChat()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;">✕</button>
+<div id="chat-panel">
+  <div style="background:#2e7d32;border-radius:16px 16px 0 0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;color:#fff;">💬 Чат с администратором</div>
+    <button onclick="toggleChat()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;">✕</button>
   </div>
-  <div id="chat-messages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:180px;max-height:300px;"></div>
-  <div style="padding:10px 12px;border-top:1px solid #f1f8e9;display:flex;gap:8px;align-items:center;">
-    <input id="chat-input" style="flex:1;border:1.5px solid #e8f5e9;border-radius:10px;padding:8px 12px;font-size:13px;font-family:'Geologica',sans-serif;outline:none;background:#fafafa;" placeholder="Написать сообщение..."
+  <div id="chat-messages"></div>
+  <div style="padding:9px 10px;border-top:1px solid #f1f8e9;display:flex;gap:7px;align-items:center;">
+    <input id="chat-input" style="flex:1;border:1.5px solid #e8f5e9;border-radius:9px;padding:7px 10px;font-size:13px;font-family:'Geologica',sans-serif;outline:none;background:#fafafa;" placeholder="Написать..."
       onkeydown="if(event.key==='Enter')sendChefMsg()"/>
-    <label style="width:32px;height:32px;border-radius:50%;background:#f1f8e9;border:1.5px solid #c8e6c9;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;flex-shrink:0;">
+    <label style="width:30px;height:30px;border-radius:50%;background:#f1f8e9;border:1.5px solid #c8e6c9;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;">
       📷<input type="file" accept="image/*" style="display:none;" onchange="handleChefImage(this)"/>
     </label>
-    <button onclick="sendChefMsg()" style="width:32px;height:32px;border-radius:50%;background:#4caf50;border:none;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">→</button>
+    <button onclick="sendChefMsg()" style="width:30px;height:30px;border-radius:50%;background:#4caf50;border:none;color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">→</button>
   </div>
 </div>
 
 <script>
-  // ── Firebase ───────────────────────────────────────────────────────────────
-  const firebaseConfig = {
-    apiKey: "AIzaSyBNnRqrkkBBq9VcplpavUK1V3MEbubRzi4",
-    authDomain: "ecolavka-dc08f.firebaseapp.com",
-    databaseURL: "https://ecolavka-dc08f-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "ecolavka-dc08f",
-    storageBucket: "ecolavka-dc08f.firebasestorage.app",
-    messagingSenderId: "507953295640",
-    appId: "1:507953295640:web:067e5c6a148db0166f2e6d"
-  };
-  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+  const firebaseConfig={apiKey:"AIzaSyBNnRqrkkBBq9VcplpavUK1V3MEbubRzi4",authDomain:"ecolavka-dc08f.firebaseapp.com",databaseURL:"https://ecolavka-dc08f-default-rtdb.europe-west1.firebasedatabase.app",projectId:"ecolavka-dc08f",storageBucket:"ecolavka-dc08f.firebasestorage.app",messagingSenderId:"507953295640",appId:"1:507953295640:web:067e5c6a148db0166f2e6d"};
+  if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+  const db=firebase.database();
 
-  // ── Clock ──────────────────────────────────────────────────────────────────
-  function tick() {
-    const now = new Date();
-    document.getElementById("clock").textContent =
-      now.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-    document.getElementById("today-lbl").textContent =
-      now.toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"});
+  const today=new Date().toISOString().slice(0,10);
+
+  // Clock
+  function tick(){
+    const n=new Date();
+    document.getElementById("clock").textContent=n.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    document.getElementById("today-lbl").textContent=n.toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"});
   }
-  tick(); setInterval(tick,1000);
+  tick();setInterval(tick,1000);
 
-  // ── State ──────────────────────────────────────────────────────────────────
-  const today = new Date().toISOString().slice(0,10);
-  let state = { dishes:[], ingredients:[], portions:{}, done:{}, actual:{}, connected:false };
+  // State
+  let state={dishes:[],ingredients:[],portions:{},done:{},actual:{},connected:false};
+  // Shopping list: {ingId: qty}
+  let shoppingList={};
 
-  // ── Mark done ──────────────────────────────────────────────────────────────
-  function toggleDone(dishId) {
-    const newVal = !state.done[dishId];
-    // When marking done, auto-fill actual = planned if not set
-    if (newVal && !state.actual[dishId]) {
-      db.ref(`daymenu/${today}/actual/${dishId}`).set(state.portions[dishId]||0).catch(()=>{});
-    }
+  // ── Chime ────────────────────────────────────────────────────────────────
+  let chimeInterval=null,chimeCount=0;
+  function playChimeOnce(){try{const c=new(window.AudioContext||window.webkitAudioContext)();[523.25,659.25,783.99,1046.50].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type="sine";o.frequency.value=f;const t=c.currentTime+i*0.18;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.4,t+0.05);g.gain.exponentialRampToValueAtTime(0.001,t+0.5);o.start(t);o.stop(t+0.5);});}catch{}}
+  function stopChime(){if(chimeInterval){clearInterval(chimeInterval);chimeInterval=null;chimeCount=0;}}
+  function startChime(){stopChime();chimeCount=0;playChimeOnce();chimeCount++;chimeInterval=setInterval(()=>{if(chimeCount>=5){stopChime();return;}playChimeOnce();chimeCount++;},2200);}
+  function showNotification(){startChime();document.getElementById("notify-banner").style.display="flex";}
+  function closeNotification(){stopChime();document.getElementById("notify-banner").style.display="none";}
+
+  // Chat sounds
+  function playChatSend(){try{const c=new(window.AudioContext||window.webkitAudioContext)();[[880,0],[1100,0.1]].forEach(([f,w])=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type="sine";o.frequency.value=f;const t=c.currentTime+w;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.25,t+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.start(t);o.stop(t+0.2);});}catch{}}
+  function playChatReceive(){try{const c=new(window.AudioContext||window.webkitAudioContext)();[[1047,0],[880,0.12]].forEach(([f,w])=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type="triangle";o.frequency.value=f;const t=c.currentTime+w;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.22,t+0.03);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);o.start(t);o.stop(t+0.35);});}catch{}}
+
+  // ── Call admin ────────────────────────────────────────────────────────────
+  let callCooldown=false;
+  function callAdmin(){
+    if(callCooldown)return;
+    callCooldown=true;
+    db.ref("callAdmin").set({ts:Date.now(),message:"Повар вызывает администратора!"}).catch(()=>{});
+    const btn=document.getElementById("call-btn");
+    if(btn){btn.textContent="✓ Отправлено";btn.style.background="#388e3c";btn.disabled=true;setTimeout(()=>{btn.textContent="📞 Вызвать администратора";btn.style.background="#e65100";btn.disabled=false;callCooldown=false;},10000);}
+  }
+
+  // ── Shopping list ─────────────────────────────────────────────────────────
+  function setShoppingQty(ingId, val){
+    const n=Math.max(0,parseFloat(val)||0);
+    shoppingList[ingId]=n;
+    db.ref(`chefShopping/${today}/${ingId}`).set(n||null).catch(()=>{});
+    render();
+  }
+
+  // ── Mark done ─────────────────────────────────────────────────────────────
+  function toggleDone(dishId){
+    const newVal=!state.done[dishId];
+    if(newVal&&!state.actual[dishId]){db.ref(`daymenu/${today}/actual/${dishId}`).set(state.portions[dishId]||0).catch(()=>{});}
     db.ref(`daymenu/${today}/done/${dishId}`).set(newVal).catch(()=>{});
   }
-
-  function setActual(dishId, val) {
-    const n = Math.max(0, parseInt(val)||0);
+  function setActual(dishId,val){
+    const n=Math.max(0,parseInt(val)||0);
     db.ref(`daymenu/${today}/actual/${dishId}`).set(n).catch(()=>{});
-    // Update input field immediately
-    const inp = document.getElementById(`actual-${dishId}`);
-    if (inp) inp.value = n;
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-  function render() {
-    const main = document.getElementById("main");
-    const { dishes, ingredients, portions, done, actual, connected } = state;
+  // ── Render ────────────────────────────────────────────────────────────────
+  function render(){
+    const main=document.getElementById("main");
+    const {dishes,ingredients,portions,done,actual,connected}=state;
+    const active=dishes.filter(d=>(portions[d.id]||0)>0);
+    const totalPortions=active.reduce((s,d)=>s+(portions[d.id]||0),0);
+    const doneCount=active.filter(d=>done[d.id]).length;
+    const totalActual=active.reduce((s,d)=>s+(actual[d.id]||0),0);
 
-    const active = dishes.filter(d => (portions[d.id]||0) > 0);
-    const totalPortions = active.reduce((s,d)=>s+(portions[d.id]||0),0);
-    const doneCount = active.filter(d=>done[d.id]).length;
-    const totalActual = active.reduce((s,d)=>s+(actual[d.id]||0),0);
-
-    if (!connected) {
-      main.innerHTML = `<div class="empty"><div class="empty-icon">🔌</div><div class="empty-title">Нет соединения</div><div class="empty-sub">Проверьте интернет-соединение</div></div>`;
-      return;
-    }
-
-    if (active.length === 0) {
-      main.innerHTML = `<div class="empty"><div class="empty-icon">👨‍🍳</div><div class="empty-title">Меню ещё не задано</div><div class="empty-sub">Администратор не заполнил меню на сегодня</div></div>`;
-      return;
-    }
+    if(!connected){main.innerHTML=`<div style="text-align:center;padding:80px"><div style="font-size:48px">🔌</div><div style="font-family:'Unbounded',sans-serif;font-size:16px;color:#2e7d32;margin-top:16px">Нет соединения</div></div>`;return;}
+    if(active.length===0){main.innerHTML=`<div style="text-align:center;padding:80px"><div style="font-size:56px">👨‍🍳</div><div style="font-family:'Unbounded',sans-serif;font-size:16px;color:#2e7d32;margin-top:16px">Меню не задано</div><div style="color:#4a7f4e;font-size:13px;margin-top:8px">Ожидайте от администратора</div></div>`;return;}
 
     // Grocery totals
-    const grocery = {};
-    active.forEach(dish => {
-      const p = portions[dish.id]||0;
-      dish.ingredients.forEach(di => {
-        const ing = ingredients.find(i=>i.id===di.id);
-        if(!ing) return;
-        if(!grocery[ing.name]) grocery[ing.name]={name:ing.name,unit:ing.unit,total:0};
-        grocery[ing.name].total += di.amount * p;
+    const grocery={};
+    active.forEach(dish=>{
+      const p=portions[dish.id]||0;
+      dish.ingredients.forEach(di=>{
+        const ing=ingredients.find(i=>i.id===di.id);if(!ing)return;
+        if(!grocery[ing.id])grocery[ing.id]={id:ing.id,name:ing.name,unit:ing.unit,total:0};
+        grocery[ing.id].total+=di.amount*p;
       });
     });
 
-    const pct = active.length ? Math.round(doneCount/active.length*100) : 0;
-    const dateLabel = new Date(today+"T00:00:00").toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"});
+    const pct=active.length?Math.round(doneCount/active.length*100):0;
+    const dateLabel=new Date(today+"T00:00:00").toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"});
 
-    main.innerHTML = `
-      <!-- Status bar -->
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#111f14;border-radius:10px;margin-bottom:18px;font-size:12px;color:#66bb6a;border:1px solid #1e3d25;">
-        <span style="width:9px;height:9px;border-radius:50%;background:#4caf50;flex-shrink:0;box-shadow:0 0 6px #4caf50;"></span>
-        Подключено · данные обновляются в реальном времени
+    main.innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:#111f14;border-radius:9px;margin-bottom:16px;font-size:11px;color:#66bb6a;border:1px solid #1e3d25;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#4caf50;flex-shrink:0;box-shadow:0 0 5px #4caf50;"></span>
+        Подключено · обновление в реальном времени
       </div>
 
-      <!-- Date banner -->
       <div class="date-banner">
         <div>
           <div class="date-banner-title">${dateLabel}</div>
-          <div style="font-size:12px;color:#4a7f4e;margin-top:4px;">Нажмите ✓ и укажите фактическое количество</div>
+          <div style="font-size:11px;color:#4a7f4e;margin-top:4px;">Нажмите ✓ и укажите фактическое количество</div>
         </div>
         <div class="date-stats">
           <div class="stat"><div class="stat-num">${active.length}</div><div class="stat-lbl">блюд</div></div>
@@ -327,128 +221,99 @@
         </div>
       </div>
 
-      <!-- Progress -->
       <div class="progress-wrap">
-        <div class="progress-top">
-          <span>Прогресс приготовления</span>
-          <span>${doneCount} / ${active.length} блюд</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width:${pct}%"></div>
-        </div>
+        <div class="progress-top"><span>Прогресс</span><span>${doneCount} / ${active.length}</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
       </div>
 
-      <!-- Dishes -->
       <div class="dish-grid">
-        ${active.map(dish => {
-          const p = portions[dish.id]||0;
-          const a = actual[dish.id] ?? "";
-          const isDone = !!done[dish.id];
+        ${active.map(dish=>{
+          const p=portions[dish.id]||0;
+          const a=actual[dish.id]??'';
+          const isDone=!!done[dish.id];
           return `
             <div class="dish-card ${isDone?'done':''}">
-              <button class="done-btn ${isDone?'active':''}" onclick="toggleDone(${dish.id})" title="${isDone?'Снять отметку':'Отметить готовым'}">
-                ${isDone?'✓':'○'}
-              </button>
+              <button class="done-btn ${isDone?'active':''}" onclick="toggleDone(${dish.id})">${isDone?'✓':'○'}</button>
               <div class="dish-hdr">
                 <div class="dish-emoji">${dish.emoji}</div>
-                <div class="dish-info">
+                <div style="flex:1">
                   <div class="dish-name">${dish.name}</div>
-                  <div class="portions-row">
-                    <div class="portions-big">${p}</div>
-                    <div class="portions-lbl">план</div>
-                  </div>
+                  <div class="portions-row"><div class="portions-big">${p}</div><div class="portions-lbl">план</div></div>
                 </div>
               </div>
-
-              <!-- Actual portions input -->
-              <div style="margin-top:12px;border-top:1px solid #1e3d25;padding-top:12px;display:flex;align-items:center;gap:10px;">
-                <span style="font-size:12px;color:#66bb6a;white-space:nowrap;">Фактически:</span>
-                <input
-                  id="actual-${dish.id}"
-                  type="number" min="0" max="${p}"
-                  value="${a}"
-                  placeholder="${p}"
-                  style="width:70px;background:#1a3320;border:1.5px solid ${isDone?'#4caf50':'#2e7d32'};border-radius:10px;color:#fff;font-family:'Unbounded',sans-serif;font-size:20px;font-weight:700;text-align:center;padding:6px 8px;outline:none;"
-                  oninput="setActual(${dish.id}, this.value)"
-                />
-                <span style="font-size:13px;color:#4a7f4e;">порц.</span>
-                ${a !== "" && a < p ? `<span style="font-size:11px;color:#f57f17;background:#1e2a00;padding:2px 8px;border-radius:8px;">−${p-a} недост.</span>` : ''}
-                ${a !== "" && a >= p ? `<span style="font-size:11px;color:#4caf50;background:#1a3320;padding:2px 8px;border-radius:8px;">✓ выполнено</span>` : ''}
+              <div style="margin-top:10px;border-top:1px solid #1e3d25;padding-top:10px;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;color:#66bb6a;white-space:nowrap;">Факт:</span>
+                <input id="actual-${dish.id}" type="number" min="0" max="${p}" value="${a}" placeholder="${p}"
+                  style="width:64px;background:#1a3320;border:1.5px solid ${isDone?'#4caf50':'#2e7d32'};border-radius:9px;color:#fff;font-family:'Unbounded',sans-serif;font-size:18px;font-weight:700;text-align:center;padding:5px 6px;outline:none;"
+                  oninput="setActual(${dish.id},this.value)"/>
+                <span style="font-size:12px;color:#4a7f4e;">порц.</span>
+                ${a!==''&&Number(a)<p?`<span style="font-size:10px;color:#f57f17;background:#1e2a00;padding:2px 7px;border-radius:7px;">−${p-Number(a)}</span>`:''}
+                ${a!==''&&Number(a)>=p?`<span style="font-size:10px;color:#4caf50;background:#1a3320;padding:2px 7px;border-radius:7px;">✓</span>`:''}
               </div>
-
               ${dish.ingredients.length>0?`
-                <div class="ing-list" style="margin-top:10px;">
+                <div class="ing-list">
                   <div class="ing-lbl">Состав на ${p} порц.</div>
                   ${dish.ingredients.map(di=>{
-                    const ing = ingredients.find(i=>i.id===di.id);
-                    if(!ing) return '';
-                    const total = di.amount*p;
-                    return `<div class="ing-row">
-                      <span class="ing-dot"></span>
-                      <span class="ing-name">${ing.name}</span>
-                      <span class="ing-amt">${total%1===0?total:total.toFixed(3)} ${ing.unit}</span>
-                    </div>`;
+                    const ing=ingredients.find(i=>i.id===di.id);if(!ing)return'';
+                    const tot=di.amount*p;
+                    return`<div class="ing-row"><span class="ing-dot"></span><span class="ing-name">${ing.name}</span><span class="ing-amt">${tot%1===0?tot:tot.toFixed(3)} ${ing.unit}</span></div>`;
                   }).join('')}
-                </div>
-              `:''}
-            </div>
-          `;
-        }).join('')}
-      </div>
-
-      <!-- Summary table of prepared dishes -->
-      <div class="section-title" style="margin-top:32px;">📊 Итог приготовления</div>
-      <div style="background:#111f14;border:2px solid #2e7d32;border-radius:16px;overflow:hidden;margin-bottom:24px;">
-        <!-- Header -->
-        <div style="display:grid;grid-template-columns:1fr 90px 90px 90px;padding:10px 18px;font-size:10px;color:#4a7f4e;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:1px solid #1e3d25;">
-          <span>Блюдо</span>
-          <span style="text-align:center;">План</span>
-          <span style="text-align:center;">Факт</span>
-          <span style="text-align:right;">Статус</span>
-        </div>
-        ${active.map(dish => {
-          const p = portions[dish.id]||0;
-          const a = actual[dish.id] ?? null;
-          const isDone = !!done[dish.id];
-          const diff = a !== null ? a - p : null;
-          const statusColor = !isDone ? '#4a7f4e' : a >= p ? '#4caf50' : '#f57f17';
-          const statusText = !isDone ? '—' : a >= p ? '✓ выполнено' : `−${p-a} недост.`;
-          return `
-            <div style="display:grid;grid-template-columns:1fr 90px 90px 90px;padding:12px 18px;border-bottom:1px solid #1a3320;align-items:center;">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <span style="font-size:22px;">${dish.emoji}</span>
-                <span style="font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;color:#fff;">${dish.name}</span>
-              </div>
-              <div style="text-align:center;font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:#66bb6a;">${p}</div>
-              <div style="text-align:center;font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:${a!==null?'#fff':'#2e7d32'};">${a !== null ? a : '—'}</div>
-              <div style="text-align:right;font-size:11px;font-weight:600;color:${statusColor};">${statusText}</div>
+                </div>`:''}
             </div>`;
         }).join('')}
-        <!-- Total row -->
-        <div style="display:grid;grid-template-columns:1fr 90px 90px 90px;padding:14px 18px;background:#0d1f12;align-items:center;">
-          <span style="font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;color:#4caf50;">ИТОГО</span>
-          <div style="text-align:center;font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#66bb6a;">${totalPortions}</div>
-          <div style="text-align:center;font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#fff;">${totalActual}</div>
-          <div style="text-align:right;font-size:12px;font-weight:700;color:${totalActual>=totalPortions?'#4caf50':'#f57f17'};">${totalActual>=totalPortions?'✓ план выполнен':totalActual>0?`${totalPortions-totalActual} недост.`:'—'}</div>
+      </div>
+
+      <!-- Summary table -->
+      <div class="section-title" style="margin-top:8px;">📊 Итог приготовления</div>
+      <div style="background:#111f14;border:2px solid #2e7d32;border-radius:14px;overflow:hidden;margin-bottom:24px;">
+        <div style="display:grid;grid-template-columns:1fr 80px 80px 90px;padding:9px 16px;font-size:9px;color:#4a7f4e;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:1px solid #1e3d25;">
+          <span>Блюдо</span><span style="text-align:center">План</span><span style="text-align:center">Факт</span><span style="text-align:right">Статус</span>
+        </div>
+        ${active.map(dish=>{
+          const p=portions[dish.id]||0,a=actual[dish.id]??null,isDone=!!done[dish.id];
+          const sc=!isDone?'#4a7f4e':a>=p?'#4caf50':'#f57f17';
+          const st=!isDone?'—':a>=p?'✓ выполнено':`−${p-a}`;
+          return`<div style="display:grid;grid-template-columns:1fr 80px 80px 90px;padding:11px 16px;border-bottom:1px solid #1a3320;align-items:center;">
+            <div style="display:flex;align-items:center;gap:9px;"><span style="font-size:20px">${dish.emoji}</span><span style="font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:#fff">${dish.name}</span></div>
+            <div style="text-align:center;font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;color:#66bb6a">${p}</div>
+            <div style="text-align:center;font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;color:${a!==null?'#fff':'#2e7d32'}">${a!==null?a:'—'}</div>
+            <div style="text-align:right;font-size:10px;font-weight:600;color:${sc}">${st}</div>
+          </div>`;
+        }).join('')}
+        <div style="display:grid;grid-template-columns:1fr 80px 80px 90px;padding:12px 16px;background:#0d1f12;">
+          <span style="font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:#4caf50">ИТОГО</span>
+          <div style="text-align:center;font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;color:#66bb6a">${totalPortions}</div>
+          <div style="text-align:center;font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;color:#fff">${totalActual}</div>
+          <div style="text-align:right;font-size:11px;font-weight:700;color:${totalActual>=totalPortions?'#4caf50':'#f57f17'}">${totalActual>=totalPortions?'✓ план':'недост.'}</div>
         </div>
       </div>
 
-      <!-- Grocery -->
-      <div class="section-title">🧺 Общая закупка на день</div>
-      <div style="background:#111f14;border:2px solid #2e7d32;border-radius:16px;overflow:hidden;margin-bottom:24px;">
-        <div style="display:grid;grid-template-columns:1fr 120px;padding:10px 18px;font-size:10px;color:#4a7f4e;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:1px solid #1e3d25;">
+      <!-- Grocery table with КУПИТЬ column -->
+      <div class="section-title">🧺 Закупка на день</div>
+      <div style="background:#111f14;border:2px solid #2e7d32;border-radius:14px;overflow:hidden;margin-bottom:24px;">
+        <div style="display:grid;grid-template-columns:1fr 110px 120px;padding:9px 16px;font-size:9px;color:#4a7f4e;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:1px solid #1e3d25;">
           <span>Ингредиент</span>
-          <span style="text-align:right;">Количество</span>
+          <span style="text-align:right">Нужно</span>
+          <span style="text-align:center">Купить</span>
         </div>
-        ${Object.values(grocery).map((g, idx) => `
-          <div style="display:grid;grid-template-columns:1fr 120px;padding:11px 18px;border-bottom:1px solid #1a3320;align-items:center;background:${idx%2===0?'transparent':'#0d1f12'};">
-            <span style="font-size:14px;color:#c8e6c9;font-weight:500;">${g.name}</span>
-            <span style="text-align:right;font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;color:#4caf50;">${g.total%1===0?g.total:g.total.toFixed(3)} ${g.unit}</span>
-          </div>
-        `).join('')}
-        <div style="display:grid;grid-template-columns:1fr 120px;padding:12px 18px;background:#0d1f12;align-items:center;">
-          <span style="font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:#4caf50;">ИТОГО ПОЗИЦИЙ</span>
-          <span style="text-align:right;font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:#fff;">${Object.keys(grocery).length}</span>
+        ${Object.values(grocery).map((g,idx)=>`
+          <div style="display:grid;grid-template-columns:1fr 110px 120px;padding:10px 16px;border-bottom:1px solid #1a3320;align-items:center;background:${idx%2===0?'transparent':'#0d1f12'};">
+            <span style="font-size:13px;color:#c8e6c9;font-weight:500">${g.name}</span>
+            <span style="text-align:right;font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;color:#4caf50">${g.total%1===0?g.total:g.total.toFixed(3)} ${g.unit}</span>
+            <div style="display:flex;align-items:center;gap:5px;justify-content:center;">
+              <input type="number" min="0" step="0.001"
+                value="${shoppingList[g.id]||''}"
+                placeholder="0"
+                style="width:60px;background:#1a3320;border:1.5px solid #2e7d32;border-radius:8px;color:#fff;font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;text-align:center;padding:4px 5px;outline:none;"
+                oninput="setShoppingQty(${g.id},this.value)"
+                onfocus="this.style.borderColor='#4caf50'" onblur="this.style.borderColor='#2e7d32'"/>
+              <span style="font-size:10px;color:#4a7f4e">${g.unit}</span>
+            </div>
+          </div>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 110px 120px;padding:11px 16px;background:#0d1f12;">
+          <span style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;color:#4caf50">ПОЗИЦИЙ</span>
+          <span style="text-align:right;font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:#fff">${Object.keys(grocery).length}</span>
+          <span style="text-align:center;font-size:11px;color:${Object.values(shoppingList).some(v=>v>0)?'#4caf50':'#4a7f4e'}">${Object.values(shoppingList).some(v=>v>0)?'✓ заполнено':'пусто'}</span>
         </div>
       </div>
 
@@ -456,252 +321,62 @@
     `;
   }
 
-  // ── Notification sound — repeats 5 times or until banner closed ──────────
-  let chimeInterval = null;
-  let chimeCount = 0;
-
-  function playChimeOnce() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [523.25, 659.25, 783.99, 1046.50];
-      notes.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = "sine"; osc.frequency.value = freq;
-        const start = ctx.currentTime + i * 0.18;
-        gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(0.4, start + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.5);
-        osc.start(start); osc.stop(start + 0.5);
-      });
-    } catch(e) {}
-  }
-
-  function stopChime() {
-    if (chimeInterval) { clearInterval(chimeInterval); chimeInterval = null; chimeCount = 0; }
-  }
-
-  function startChime() {
-    stopChime();
-    chimeCount = 0;
-    playChimeOnce();
-    chimeCount++;
-    chimeInterval = setInterval(() => {
-      if (chimeCount >= 5) { stopChime(); return; }
-      playChimeOnce();
-      chimeCount++;
-    }, 2200);
-  }
-
-  function showNotification() {
-    startChime();
-    const banner = document.getElementById("notify-banner");
-    if (banner) {
-      banner.style.display = "flex";
-    }
-  }
-
-  function closeNotification() {
-    stopChime();
-    const banner = document.getElementById("notify-banner");
-    if (banner) banner.style.display = "none";
-  }
-
-  // ── Call Admin ─────────────────────────────────────────────────────────────
-  let callCooldown = false;
-
-  function callAdmin() {
-    if (callCooldown) return;
-    callCooldown = true;
-    const ts = Date.now();
-    db.ref("callAdmin").set({ ts, message: "Повар вызывает администратора!" }).catch(() => {});
-
-    // Update button
-    const btn = document.getElementById("call-btn");
-    if (btn) {
-      btn.textContent = "✓ Вызов отправлен";
-      btn.style.background = "#388e3c";
-      btn.disabled = true;
-      setTimeout(() => {
-        btn.textContent = "📞 Вызвать администратора";
-        btn.style.background = "#e65100";
-        btn.disabled = false;
-        callCooldown = false;
-      }, 10000);
-    }
-  }
-
-  // ── Firebase listeners ─────────────────────────────────────────────────────
-  db.ref(".info/connected").on("value", snap => {
-    state.connected = !!snap.val();
-    render();
-  });
-
-  db.ref("dishes").on("value", snap => {
-    state.dishes = snap.val() || [];
-    render();
-  });
-
-  db.ref("ingredients").on("value", snap => {
-    state.ingredients = snap.val() || [];
-    render();
-  });
-
-  db.ref(`daymenu/${today}`).on("value", snap => {
-    const data = snap.val() || {};
-    state.portions = data.portions || {};
-    state.done = data.done || {};
-    state.actual = data.actual || {};
-    render();
-  });
-
   // ── Chat ──────────────────────────────────────────────────────────────────
-  let chatOpen = false;
-  let lastSeenTs = parseInt(localStorage.getItem("chef_chat_seen")||"0");
-
-  function toggleChat() {
-    chatOpen = !chatOpen;
-    const panel = document.getElementById("chat-panel");
-    panel.style.display = chatOpen ? "flex" : "none";
-    if (chatOpen) {
-      lastSeenTs = Date.now();
-      localStorage.setItem("chef_chat_seen", lastSeenTs);
-      updateChatBadge(0);
-      scrollChatToBottom();
-    }
+  let chatOpen=false;
+  let lastSeenTs=parseInt(localStorage.getItem("chef_chat_seen")||"0");
+  function toggleChat(){
+    chatOpen=!chatOpen;
+    const p=document.getElementById("chat-panel");
+    p.style.display=chatOpen?"flex":"none";
+    if(chatOpen){lastSeenTs=Date.now();localStorage.setItem("chef_chat_seen",lastSeenTs);updateChatBadge(0);scrollChat();}
   }
-
-  function scrollChatToBottom() {
-    const msgs = document.getElementById("chat-messages");
-    if (msgs) msgs.scrollTop = msgs.scrollHeight;
-  }
-
-  function renderChatMessages(messages) {
-    const container = document.getElementById("chat-messages");
-    if (!container) return;
-    if (messages.length === 0) {
-      container.innerHTML = '<div style="text-align:center;color:#bdbdbd;font-size:13px;margin:auto;padding:20px;">Нет сообщений</div>';
-      return;
-    }
-    container.innerHTML = messages.map(msg => {
-      const isMe = msg.sender === "chef";
-      return `
-        <div style="display:flex;flex-direction:column;align-items:${isMe?"flex-end":"flex-start"};">
-          <div style="max-width:80%;background:${isMe?"#e8f5e9":"#f5f5f5"};border-radius:${isMe?"16px 16px 4px 16px":"16px 16px 16px 4px"};padding:8px 12px;">
-            <div style="font-size:10px;color:${isMe?"#388e3c":"#9e9e9e"};margin-bottom:4px;font-weight:600;">${isMe?"Повар":"Администратор"}</div>
-            ${msg.image?`<img src="${msg.image}" style="max-width:100%;border-radius:8px;display:block;margin-bottom:${msg.text?6:0}px;" />`:""}
-            ${msg.text?`<div style="font-size:13px;color:#2d4a2e;">${msg.text}</div>`:""}
-            <div style="font-size:10px;color:#bdbdbd;margin-top:4px;text-align:right;">${new Date(msg.ts).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}</div>
-          </div>
-        </div>`;
+  function scrollChat(){const m=document.getElementById("chat-messages");if(m)m.scrollTop=m.scrollHeight;}
+  function updateChatBadge(n){const b=document.getElementById("chat-badge");if(!b)return;b.textContent=n;b.style.display=n>0?"flex":"none";}
+  function renderChatMessages(msgs){
+    const c=document.getElementById("chat-messages");if(!c)return;
+    if(!msgs.length){c.innerHTML='<div style="text-align:center;color:#bdbdbd;font-size:12px;margin:auto;padding:20px">Нет сообщений</div>';return;}
+    c.innerHTML=msgs.map(m=>{
+      const isMe=m.sender==="chef";
+      return`<div style="display:flex;flex-direction:column;align-items:${isMe?"flex-end":"flex-start"};">
+        <div style="max-width:80%;background:${isMe?"#e8f5e9":"#f5f5f5"};border-radius:${isMe?"14px 14px 4px 14px":"14px 14px 14px 4px"};padding:7px 10px;">
+          <div style="font-size:9px;color:${isMe?"#388e3c":"#9e9e9e"};margin-bottom:3px;font-weight:600">${isMe?"Повар":"Администратор"}</div>
+          ${m.image?`<img src="${m.image}" style="max-width:100%;border-radius:7px;display:block;margin-bottom:${m.text?5:0}px"/>`:""}
+          ${m.text?`<div style="font-size:12px;color:#2d4a2e">${m.text}</div>`:""}
+          <div style="font-size:9px;color:#bdbdbd;margin-top:3px;text-align:right">${new Date(m.ts).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}</div>
+        </div>
+      </div>`;
     }).join("");
-    scrollChatToBottom();
+    scrollChat();
   }
+  function sendChefMsg(){
+    const inp=document.getElementById("chat-input");const text=inp?.value?.trim();if(!text)return;
+    playChatSend();
+    db.ref(`chat/${Date.now()}`).set({id:Date.now(),ts:Date.now(),sender:"chef",text,image:null}).catch(()=>{});
+    inp.value="";
+  }
+  function compressImg(file){return new Promise(r=>{const rd=new FileReader();rd.onload=e=>{const img=new Image();img.onload=()=>{const MAX=900;const ratio=Math.min(MAX/img.width,MAX/img.height,1);const c=document.createElement("canvas");c.width=Math.round(img.width*ratio);c.height=Math.round(img.height*ratio);c.getContext("2d").drawImage(img,0,0,c.width,c.height);r(c.toDataURL("image/jpeg",0.75));};img.src=e.target.result;};rd.readAsDataURL(file);});}
+  async function handleChefImage(inp){const f=inp.files[0];if(!f)return;const img=await compressImg(f);playChatSend();db.ref(`chat/${Date.now()}`).set({id:Date.now(),ts:Date.now(),sender:"chef",text:"",image:img}).catch(()=>{});inp.value="";}
 
-  function updateChatBadge(count) {
-    const badge = document.getElementById("chat-badge");
-    if (!badge) return;
-    badge.textContent = count;
-    badge.style.display = count > 0 ? "flex" : "none";
-  }
+  // ── Firebase listeners ────────────────────────────────────────────────────
+  db.ref(".info/connected").on("value",snap=>{state.connected=!!snap.val();render();});
+  db.ref("dishes").on("value",snap=>{state.dishes=snap.val()||[];render();});
+  db.ref("ingredients").on("value",snap=>{state.ingredients=snap.val()||[];render();});
+  db.ref(`daymenu/${today}`).on("value",snap=>{const d=snap.val()||{};state.portions=d.portions||{};state.done=d.done||{};state.actual=d.actual||{};render();});
 
-  // ── Chat sounds ────────────────────────────────────────────────────────────
-  function playChatSendChef() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      [[880,0],[1100,0.1]].forEach(([freq,when])=>{
-        const o=ctx.createOscillator(),g=ctx.createGain();
-        o.connect(g);g.connect(ctx.destination);
-        o.type="sine";o.frequency.value=freq;
-        const t=ctx.currentTime+when;
-        g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.25,t+0.02);
-        g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
-        o.start(t);o.stop(t+0.2);
-      });
-    } catch(e) {}
-  }
-  function playChatReceiveChef() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      [[1047,0],[880,0.12]].forEach(([freq,when])=>{
-        const o=ctx.createOscillator(),g=ctx.createGain();
-        o.connect(g);g.connect(ctx.destination);
-        o.type="triangle";o.frequency.value=freq;
-        const t=ctx.currentTime+when;
-        g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.22,t+0.03);
-        g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
-        o.start(t);o.stop(t+0.35);
-      });
-    } catch(e) {}
-  }
+  // Chef shopping from Firebase (to restore on reload)
+  db.ref(`chefShopping/${today}`).once("value",snap=>{shoppingList=snap.val()||{};});
 
-  function sendChefMsg() {
-    const input = document.getElementById("chat-input");
-    const text = input?.value?.trim();
-    if (!text) return;
-    playChatSendChef();
-    const msg = { id: Date.now(), ts: Date.now(), sender: "chef", text, image: null };
-    db.ref(`chat/${msg.id}`).set(msg).catch(() => {});
-    input.value = "";
-  }
+  let lastPublished=null;
+  db.ref(`daymenu/${today}/published`).on("value",snap=>{const v=snap.val();if(v&&v!==lastPublished&&lastPublished!==null)showNotification();lastPublished=v;});
 
-  function compressImageChef(file) {
-    return new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const img = new Image();
-        img.onload = () => {
-          const MAX = 900;
-          const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.round(img.width * ratio);
-          canvas.height = Math.round(img.height * ratio);
-          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/jpeg", 0.75));
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function handleChefImage(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const compressed = await compressImageChef(file);
-    playChatSendChef();
-    const msg = { id: Date.now(), ts: Date.now(), sender: "chef", text: "", image: compressed };
-    db.ref(`chat/${msg.id}`).set(msg).catch(() => {});
-    input.value = "";
-  }
-
-  // Listen for chat messages
-  let allChatMsgs = [];
-  let prevChatCount = null;
-  db.ref("chat").limitToLast(100).on("value", snap => {
-    const data = snap.val();
-    allChatMsgs = data ? Object.values(data).sort((a, b) => a.ts - b.ts) : [];
-    // Play receive sound for new admin messages
-    if (prevChatCount !== null && allChatMsgs.length > prevChatCount) {
-      const newest = allChatMsgs[allChatMsgs.length - 1];
-      if (newest.sender === "admin") playChatReceiveChef();
-    }
-    prevChatCount = allChatMsgs.length;
+  let allChatMsgs=[],prevChatCount=null;
+  db.ref("chat").limitToLast(100).on("value",snap=>{
+    const data=snap.val();
+    allChatMsgs=data?Object.values(data).sort((a,b)=>a.ts-b.ts):[];
+    if(prevChatCount!==null&&allChatMsgs.length>prevChatCount){const n=allChatMsgs[allChatMsgs.length-1];if(n.sender==="admin")playChatReceive();}
+    prevChatCount=allChatMsgs.length;
     renderChatMessages(allChatMsgs);
-    if (!chatOpen) {
-      const unread = allChatMsgs.filter(m => m.sender === "admin" && m.ts > lastSeenTs).length;
-      updateChatBadge(unread);
-    }
-  });
-
-  let lastPublished = null;
-  db.ref(`daymenu/${today}/published`).on("value", snap => {
-    const val = snap.val();
-    if (val && val !== lastPublished && lastPublished !== null) {
-      showNotification();
-    }
-    lastPublished = val;
+    if(!chatOpen){const u=allChatMsgs.filter(m=>m.sender==="admin"&&m.ts>lastSeenTs).length;updateChatBadge(u);}
   });
 </script>
 </body>
