@@ -325,6 +325,16 @@ function EmojiPicker({selected,onSelect}){
   );
 }
 
+function Modal({onClose,children}){
+  return(
+    <div style={S.overlay} onClick={onClose}>
+      <div style={{...S.modal,cursor:"default"}} onClick={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 function App(){
   const today=new Date().toISOString().slice(0,10);
