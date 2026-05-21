@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="theme-color" content="#2e7d32"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Эколавка"/>
+<title>Эколавка — Администратор</title>
+<link rel="manifest" href="manifest.json"/>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Geologica:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:linear-gradient(135deg,#f1f8e9,#e8f5e9,#f9fbe7);min-height:100vh;font-family:'Geologica',sans-serif;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#c8e6c9;border-radius:2px;}
+.hov-row:hover{background:#f0faf0!important;}
+.add-btn:hover{background:#388e3c!important;}
+input:focus,select:focus{outline:none;border-color:#4caf50!important;}
+#loading{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;}
+.spin{width:36px;height:36px;border:4px solid #e8f5e9;border-top-color:#4caf50;border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="loading"><div class="spin"></div><div style="font-family:'Geologica',sans-serif;color:#81c784;font-size:14px;">Загрузка...</div></div>
+<div id="root" style="display:none"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+var FB={apiKey:"AIzaSyBNnRqrkkBBq9VcplpavUK1V3MEbubRzi4",authDomain:"ecolavka-dc08f.firebaseapp.com",databaseURL:"https://ecolavka-dc08f-default-rtdb.europe-west1.firebasedatabase.app",projectId:"ecolavka-dc08f",storageBucket:"ecolavka-dc08f.firebasestorage.app",messagingSenderId:"507953295640",appId:"1:507953295640:web:067e5c6a148db0166f2e6d"};
+if(!firebase.apps.length)firebase.initializeApp(FB);
+window.db=firebase.database();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useRef,useEffect}=React;
+const db=window.db;
+const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}};
+const today=new Date().toISOString().slice(0,10);
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+const DEF_ING=[{id:1,name:"Шпинат",unit:"кг",category:"Зелень"},{id:2,name:"Нут",unit:"кг",category:"Бобовые"},{id:3,name:"Авокадо",unit:"шт",category:"Фрукты"},{id:4,name:"Киноа",unit:"кг",category:"Крупы"},{id:5,name:"Лимон",unit:"шт",category:"Фрукты"},{id:6,name:"Оливковое масло",unit:"л",category:"Масла"},{id:7,name:"Помидоры черри",unit:"кг",category:"Овощи"},{id:8,name:"Огурец",unit:"шт",category:"Овощи"},{id:9,name:"Семена чиа",unit:"кг",category:"Семена"},{id:10,name:"Кокосовое молоко",unit:"л",category:"Напитки"},{id:11,name:"Банан",unit:"шт",category:"Фрукты"},{id:12,name:"Миндаль",unit:"кг",category:"Орехи"},{id:13,name:"Тофу",unit:"кг",category:"Белок"},{id:14,name:"Свёкла",unit:"кг",category:"Овощи"},{id:15,name:"Имбирь",unit:"кг",category:"Специи"}];
+const DEF_DISHES=[{id:1,name:"Боул с киноа",emoji:"🥗",taraCost:0,taraId:null,ingredients:[{id:4,amount:0.1},{id:1,amount:0.05},{id:7,amount:0.08},{id:6,amount:0.02},{id:5,amount:0.5}]},{id:2,name:"Хумус с овощами",emoji:"🫘",taraCost:0,taraId:null,ingredients:[{id:2,amount:0.15},{id:6,amount:0.03},{id:5,amount:1},{id:8,amount:1},{id:7,amount:0.06}]},{id:3,name:"Авокадо тост",emoji:"🥑",taraCost:0,taraId:null,ingredients:[{id:3,amount:1},{id:5,amount:0.5},{id:6,amount:0.01},{id:1,amount:0.02}]},{id:4,name:"Смузи чиа",emoji:"🥤",taraCost:0,taraId:null,ingredients:[{id:9,amount:0.03},{id:10,amount:0.2},{id:11,amount:1},{id:12,amount:0.02}]},{id:5,name:"Тофу со свёклой",emoji:"🧆",taraCost:0,taraId:null,ingredients:[{id:13,amount:0.15},{id:14,amount:0.1},{id:15,amount:0.01},{id:6,amount:0.015}]}];
+const DEF_TARA=[{id:1,name:"Контейнер 500мл",cost:12},{id:2,name:"Контейнер 1000мл",cost:18},{id:3,name:"Стакан 400мл",cost:8},{id:4,name:"Пакет крафт",cost:6}];
+const DEF_COOKS=[{id:1,name:"Повар 1",salary:2000},{id:2,name:"Повар 2",salary:2000},{id:3,name:"Повар 3",salary:2000},{id:4,name:"Повар 4",salary:2000},{id:5,name:"Повар 5",salary:2000}];
+const CC={"Зелень":"#4ade80","Бобовые":"#fb923c","Фрукты":"#f472b6","Крупы":"#facc15","Масла":"#a78bfa","Овощи":"#34d399","Семена":"#60a5fa","Напитки":"#38bdf8","Орехи":"#d97706","Белок":"#e879f9","Специи":"#f87171"};
+const UNITS=["кг","л","шт"];
+const EMOJIS=["🍕","🍔","🍟","🌭","🥪","🌮","🌯","🥙","🧆","🥚","🍳","🥘","🍲","🥣","🥗","🥫","🧀","🥩","🥓","🍗","🍖","🌽","🥕","🧅","🧄","🥔","🍠","🥐","🥯","🍞","🥖","🥨","🧁","🍰","🎂","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🌰","🥜","🍯","🥞","🧇","🍱","🍘","🍙","🍚","🍛","🍜","🍝","🍣","🍤","🍥","🥮","🍡","🥟","🥠","🥡","🦪","🍦","🍧","🍨","🫐","🍓","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🫒","🥦","🥬","🥒","🌶️","🫑","🍄","🌿","🥤","🧃","🧋","🍵","☕","🫖","🍺","🍷","🥂","🍸","🍹","🫙","🍽️"];
+
+// ── Sounds ────────────────────────────────────────────────────────────────────
+function snd(notes){try{const c=new(window.AudioContext||window.webkitAudioContext)();notes.forEach(([f,w,dur,type="sine"])=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=type;o.frequency.value=f;const t=c.currentTime+w;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.3,t+0.05);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.start(t);o.stop(t+dur);});}catch{}}
+const sndSend=()=>snd([[880,0,0.2],[1100,0.1,0.2]]);
+const sndRecv=()=>snd([[1047,0,0.3,"triangle"],[880,0.12,0.3,"triangle"]]);
+const sndAlert=()=>snd([[523,0,0.4],[659,0.18,0.4],[784,0.36,0.4]]);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const sel=e=>{const t=e.target;setTimeout(()=>t.select(),0);};
+const fmt=n=>n%1===0?String(n):n.toFixed(3).replace(/\.?0+$/,"");
+
+// ── EmojiPicker ───────────────────────────────────────────────────────────────
+function EmojiPicker({val,onPick}){
+  return <div style={{background:"#f9fbe7",border:"1.5px solid #e8f5e9",borderRadius:12,padding:10,marginBottom:10}}>
+    <div style={{fontSize:11,color:"#81c784",fontWeight:600,marginBottom:7}}>Выберите иконку</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(10,1fr)",gap:3,maxHeight:160,overflowY:"auto"}}>
+      {EMOJIS.map(e=><button key={e} onClick={()=>onPick(e)} style={{fontSize:20,padding:3,borderRadius:7,border:`2px solid ${val===e?"#4caf50":"transparent"}`,background:val===e?"#e8f5e9":"transparent",cursor:"pointer"}}>{e}</button>)}
+    </div>
+    <div style={{marginTop:7,fontSize:12,color:"#9e9e9e"}}>Выбрано: <span style={{fontSize:20}}>{val}</span></div>
+  </div>;
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function Modal({onClose,title,children}){
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",backdropFilter:"blur(4px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={onClose}>
+    <div style={{background:"#fff",borderRadius:18,padding:22,minWidth:300,maxWidth:420,width:"90%",boxShadow:"0 16px 60px rgba(0,0,0,0.15)",cursor:"default",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+      <div style={{fontFamily:"'Unbounded',sans-serif",fontWeight:700,fontSize:15,color:"#1b5e20",marginBottom:14}}>{title}</div>
+      {children}
+    </div>
+  </div>;
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+function App(){
+  // Core data
+  const [dishes,setDishes]=useState(()=>ls.get("eco_dishes",DEF_DISHES));
+  const [ingredients,setIngredients]=useState(()=>ls.get("eco_ingredients",DEF_ING));
+  const [taraList,setTaraList]=useState(()=>ls.get("eco_tara",DEF_TARA));
+  const [cooks,setCooks]=useState(()=>ls.get("eco_cooks",DEF_COOKS));
+  // Firebase real-time
+  const [dayPortions,setDayPortions]=useState({});
+  const [chefDone,setChefDone]=useState({});
+  const [savedDates,setSavedDates]=useState([]);
+  const [scheduleData,setScheduleData]=useState({});
+  const [purchases,setPurchases]=useState({});
+  const [purchaseDone,setPurchaseDone]=useState({});
+  const [chefShopping,setChefShopping]=useState({});
+  const [warehouse,setWarehouse]=useState({});
+  const [chatMsgs,setChatMsgs]=useState([]);
+  // UI state
+  const [tab,setTab]=useState("dishes");
+  const [tabBadges,setTabBadges]=useState({daymenu:0,purchases:0,schedule:0,warehouse:0});
+  const [menuDate,setMenuDate]=useState(today);
+  const [scheduleDate,setScheduleDate]=useState(today);
+  const [purchaseDate,setPurchaseDate]=useState(today);
+  const [periodFrom,setPeriodFrom]=useState(today);
+  const [periodTo,setPeriodTo]=useState(today);
+  const [showPeriod,setShowPeriod]=useState(false);
+  const [chatOpen,setChatOpen]=useState(false);
+  const [chatInput,setChatInput]=useState("");
+  const [chatUnread,setChatUnread]=useState(0);
+  const [chefCalling,setChefCalling]=useState(false);
+  const [syncDot,setSyncDot]=useState("ok");
+  const [published,setPublished]=useState(false);
+  const [dishSearch,setDishSearch]=useState("");
+  const [ingSearch,setIngSearch]=useState("");
+  // Modals
+  const [modal,setModal]=useState(null); // "addDish"|"addIng"|"addTara"|"addCook"|"addWarehouse"|"costError"
+  const [modalData,setModalData]=useState({});
+  // Edit states
+  const [editIngUnit,setEditIngUnit]=useState(null);
+  const [editCook,setEditCook]=useState(null);
+  const [editTara,setEditTara]=useState(null);
+  const [editPurchase,setEditPurchase]=useState(null);
+  const [editWarehouse,setEditWarehouse]=useState(null);
+  const [addingPurchase,setAddingPurchase]=useState(false);
+  const [showAddWarehouse,setShowAddWarehouse]=useState(false);
+  const chatEndRef=useRef();
+  const isReadOnly=menuDate<today;
+
+  // ── Firebase persist ────────────────────────────────────────────────────────
+  useEffect(()=>{ls.set("eco_dishes",dishes);db.ref("dishes").set(dishes).catch(()=>{});},[dishes]);
+  useEffect(()=>{ls.set("eco_ingredients",ingredients);db.ref("ingredients").set(ingredients).catch(()=>{});},[ingredients]);
+  useEffect(()=>{ls.set("eco_tara",taraList);db.ref("tara").set(taraList).catch(()=>{});},[taraList]);
+  useEffect(()=>{ls.set("eco_cooks",cooks);db.ref("cooks").set(cooks).catch(()=>{});},[cooks]);
+
+  // ── Firebase listeners ──────────────────────────────────────────────────────
+  useEffect(()=>{
+    // Saved dates
+    db.ref("daymenu").on("value",s=>{const d=s.val();setSavedDates(d?Object.keys(d).sort().reverse():[]);});
+    // Purchases
+    db.ref("purchases").on("value",s=>setPurchases(s.val()||{}));
+    // Warehouse
+    db.ref("warehouse").on("value",s=>setWarehouse(s.val()||{}));
+    // Chef call
+    let lastCall=null;
+    db.ref("callAdmin").on("value",s=>{
+      const v=s.val();
+      if(v&&v.ts&&v.ts!==lastCall&&lastCall!==null){
+        setChefCalling(true);setTimeout(()=>setChefCalling(false),15000);
+        sndAlert();
+        if(Notification.permission==="granted")new Notification("📞 Повар вызывает!",{body:"Зайдите на кухню",tag:"chef-call",requireInteraction:true});
+      }
+      lastCall=v?.ts||null;
+    });
+    // Chat
+    let prevChatLen=null;
+    db.ref("chat").limitToLast(100).on("value",s=>{
+      const d=s.val();
+      const msgs=d?Object.values(d).sort((a,b)=>a.ts-b.ts):[];
+      if(prevChatLen!==null&&msgs.length>prevChatLen){
+        const n=msgs[msgs.length-1];
+        if(n.sender==="chef")sndRecv();
+      }
+      prevChatLen=msgs.length;
+      setChatMsgs(msgs);
+      const seen=ls.get("chat_seen",0);
+      setChatUnread(msgs.filter(m=>m.sender==="chef"&&m.ts>seen).length);
+    });
+    // Chat cleanup 3 months
+    const cut=Date.now()-90*24*60*60*1000;
+    db.ref("chat").once("value",s=>{const d=s.val();if(d)Object.entries(d).forEach(([k,m])=>{if(m.ts<cut)db.ref(`chat/${k}`).remove();});});
+    // Schedule badge on new day
+    const lastChanged=ls.get("schedule_last_changed",0);
+    if(new Date(lastChanged).toISOString().slice(0,10)!==today){
+      setTabBadges(p=>({...p,schedule:1}));
+    }
+    // Notifications permission
+    if("Notification"in window&&Notification.permission==="default")Notification.requestPermission();
+    // Schedule midnight check
+    const now=new Date();const midnight=new Date(now);midnight.setHours(24,0,0,0);
+    const mt=setTimeout(()=>setTabBadges(p=>({...p,schedule:1})),midnight-now);
+    return()=>clearTimeout(mt);
+  },[]);
+
+  useEffect(()=>{
+    const ref=db.ref(`daymenu/${menuDate}`);
+    let first=true;
+    ref.on("value",s=>{
+      const d=s.val()||{};
+      if(!first&&tab!=="daymenu")setTabBadges(p=>({...p,daymenu:p.daymenu+1}));
+      first=false;
+      setDayPortions(d.portions||{});setChefDone(d.done||{});
+    });
+    return()=>ref.off();
+  },[menuDate]);
+
+  useEffect(()=>{
+    const ref=db.ref(`schedule/${scheduleDate}`);
+    ref.on("value",s=>setScheduleData(s.val()||{}));
+    return()=>ref.off();
+  },[scheduleDate]);
+
+  useEffect(()=>{
+    const ref=db.ref(`purchaseDone/${purchaseDate}`);
+    ref.on("value",s=>setPurchaseDone(s.val()||{}));
+    return()=>ref.off();
+  },[purchaseDate]);
+
+  useEffect(()=>{
+    let first=true,prev="";
+    const ref=db.ref(`chefShopping/${today}`);
+    ref.on("value",s=>{
+      const d=s.val()||{};const str=JSON.stringify(d);
+      if(!first&&str!==prev&&Object.values(d).some(v=>v>0)){
+        sndAlert();
+        if(Notification.permission==="granted")new Notification("🛒 Повар обновил список!",{body:"Проверьте Закупки",tag:"chef-shop"});
+        setTabBadges(p=>({...p,purchases:p.purchases+1}));
+      }
+      prev=str;first=false;setChefShopping(d);
+    });
+    return()=>ref.off();
+  },[]);
+
+  // ── Cost from purchases ─────────────────────────────────────────────────────
+  const getIngCostPer=ingId=>{
+    let latest=null,latestId=0;
+    Object.values(purchases).forEach(list=>(list||[]).forEach(p=>{
+      if(p.ingId===ingId&&p.costPer!=null&&p.id>latestId){latestId=p.id;latest=p.costPer;}
+    }));
+    return latest;
+  };
+  const dishCost=dish=>{
+    const ingCost=dish.ingredients.reduce((s,di)=>{const cp=getIngCostPer(di.id);return cp!==null?s+cp*di.amount:s;},0);
+    return ingCost+(dish.taraCost||0);
+  };
+  const dishMissing=dish=>dish.ingredients.filter(di=>getIngCostPer(di.id)===null).map(di=>ingredients.find(i=>i.id===di.id)?.name).filter(Boolean);
+
+  // ── Computed ────────────────────────────────────────────────────────────────
+  const activeDay=dishes.map(d=>({dish:d,portions:dayPortions[d.id]||0})).filter(x=>x.portions>0);
+  const dayTotal=activeDay.reduce((s,{dish,portions})=>s+dishCost(dish)*portions,0);
+  const dayPortionsTotal=activeDay.reduce((s,x)=>s+x.portions,0);
+  const doneCount=activeDay.filter(({dish})=>chefDone[dish.id]).length;
+  const dayIngTotals=()=>{const t={};activeDay.forEach(({dish,portions})=>dish.ingredients.forEach(({id,amount})=>{t[id]=(t[id]||0)+amount*portions;}));return Object.entries(t).map(([id,total])=>({ing:ingredients.find(i=>i.id===Number(id)),total})).filter(x=>x.ing);};
+  const workingCooks=cooks.filter(c=>scheduleData[c.id]);
+  const totalSalary=workingCooks.reduce((s,c)=>s+c.salary,0);
+  const dayPurchases=purchases[purchaseDate]||[];
+  const dayPurchaseTotal=dayPurchases.reduce((s,p)=>s+(p.amount||0),0);
+  const periodPurchases=Object.entries(purchases).filter(([d])=>d>=periodFrom&&d<=periodTo).sort(([a],[b])=>a.localeCompare(b));
+  const periodTotal=periodPurchases.reduce((s,[,list])=>s+list.reduce((ss,p)=>ss+(p.amount||0),0),0);
+  const chefShoppingItems=Object.entries(chefShopping).map(([ingId,qty])=>({ing:ingredients.find(i=>i.id===Number(ingId)),qty})).filter(x=>x.ing&&x.qty>0);
+  const allDone=dayPurchases.length>0&&dayPurchases.every(p=>purchaseDone[p.id]);
+  // Warehouse
+  const warehouseTotal=Object.entries(warehouse).reduce((s,[,v])=>s+(v.qty||0)*(v.costPer||0),0);
+  const excessItems=Object.entries(()=>{
+    const ex={};
+    (purchases[today]||[]).forEach(p=>{
+      if(!p.ingId||!p.quantity)return;
+      const req=Number(chefShopping[p.ingId])||0;
+      const extra=Number(p.quantity)-req;
+      if(extra>0){if(!ex[p.ingId])ex[p.ingId]={qty:0,costPer:p.costPer||0};ex[p.ingId].qty+=extra;}
+    });
+    return ex;
+  });
+
+  const visCats=[...new Set(ingredients.filter(i=>i.name.toLowerCase().includes(ingSearch.toLowerCase())).map(i=>i.category))];
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
+  const markTab=key=>{setTab(key);setTabBadges(p=>({...p,[key]:0}));};
+
+  const savePortions=async(p)=>{
+    setSyncDot("saving");
+    try{await db.ref(`daymenu/${menuDate}/portions`).set(p);setSyncDot("ok");}
+    catch{setSyncDot("ok");}
+  };
+  const setPortions=(dishId,val)=>{
+    if(isReadOnly)return;
+    const n=Math.max(0,parseInt(val)||0);
+    setDayPortions(prev=>{const next={...prev,[dishId]:n};savePortions(next);return next;});
+  };
+  const clearDay=()=>{if(isReadOnly)return;setDayPortions({});db.ref(`daymenu/${menuDate}/portions`).set({}).catch(()=>{});};
+  const publishMenu=async()=>{
+    if(isReadOnly||dayPortionsTotal===0)return;
+    await db.ref(`daymenu/${menuDate}/published`).set(Date.now()).catch(()=>{});
+    setPublished(true);setTimeout(()=>setPublished(false),4000);
+  };
+  const addDish=()=>{
+    const {name,emoji}=modalData;if(!name)return;
+    if(dishes.some(d=>d.name.trim().toLowerCase()===name.trim().toLowerCase())){alert("Блюдо с таким названием уже существует");return;}
+    setDishes(p=>[...p,{id:Date.now(),name,emoji:emoji||"🍽️",taraCost:0,taraId:null,ingredients:[]}]);
+    setModal(null);setModalData({});
+  };
+  const updateDish=(id,patch)=>setDishes(p=>p.map(d=>d.id===id?{...d,...patch}:d));
+  const deleteDish=id=>setDishes(p=>p.filter(d=>d.id!==id));
+  const addIng=()=>{
+    const {name,unit,category}=modalData;if(!name)return;
+    setIngredients(p=>[...p,{id:Date.now(),name,unit:unit||"кг",category:category||"Овощи"}]);
+    setModal(null);setModalData({});
+  };
+  const removeIng=id=>setIngredients(p=>p.filter(i=>i.id!==id));
+  const saveIngUnit=(id,u)=>{setIngredients(p=>p.map(i=>i.id===id?{...i,unit:u}:i));setEditIngUnit(null);};
+  const addTara=()=>{
+    const {name,cost}=modalData;if(!name)return;
+    setTaraList(p=>[...p,{id:Date.now(),name,cost:Number(cost)||0}]);
+    setModal(null);setModalData({});
+  };
+  const saveTara=(id,name,cost)=>{
+    setTaraList(p=>p.map(t=>t.id===id?{...t,name,cost:Number(cost)}:t));
+    setDishes(p=>p.map(d=>d.taraId===id?{...d,taraCost:Number(cost),taraName:name}:d));
+    setEditTara(null);
+  };
+  const deleteTara=id=>{setTaraList(p=>p.filter(t=>t.id!==id));setDishes(p=>p.map(d=>d.taraId===id?{...d,taraId:null,taraCost:0}:d));};
+  const addCook=()=>{
+    const {name,salary}=modalData;if(!name)return;
+    setCooks(p=>[...p,{id:Date.now(),name,salary:Number(salary)||0}]);
+    setModal(null);setModalData({});
+  };
+  const saveCook=(id,name,salary)=>{setCooks(p=>p.map(c=>c.id===id?{...c,name,salary:Number(salary)}:c));setEditCook(null);};
+  const deleteCook=id=>setCooks(p=>p.filter(c=>c.id!==id));
+  const toggleCook=id=>{
+    db.ref(`schedule/${scheduleDate}/${id}`).set(!(scheduleData[id]||false)).catch(()=>{});
+    ls.set("schedule_last_changed",Date.now());setTabBadges(p=>({...p,schedule:0}));
+  };
+  const addPurchase=()=>{
+    const {supplier,ingId,quantity,amount}=modalData;
+    if(!supplier||!amount)return;
+    const qty=Number(quantity)||0;const amt=Number(amount)||0;
+    const costPer=ingId&&qty>0?amt/qty:null;
+    const entry={id:Date.now(),supplier,ingId:ingId?Number(ingId):null,quantity:qty,amount:amt,costPer};
+    const list=[...dayPurchases,entry];
+    db.ref(`purchases/${purchaseDate}`).set(list).catch(()=>{});
+    ls.set("purchase_last_changed",Date.now());
+    setAddingPurchase(false);setModalData({});
+  };
+  const deletePurchase=(date,id)=>{
+    const list=(purchases[date]||[]).filter(p=>p.id!==id);
+    db.ref(`purchases/${date}`).set(list.length?list:null).catch(()=>{});
+  };
+  const saveEditPurchase=()=>{
+    if(!editPurchase)return;
+    const qty=Number(editPurchase.quantity)||0;const amt=Number(editPurchase.amount)||0;
+    const costPer=editPurchase.ingId&&qty>0?amt/qty:null;
+    const list=(purchases[editPurchase.date]||[]).map(p=>p.id===editPurchase.id?{...p,supplier:editPurchase.supplier,ingId:editPurchase.ingId?Number(editPurchase.ingId):null,quantity:qty,amount:amt,costPer}:p);
+    db.ref(`purchases/${editPurchase.date}`).set(list).catch(()=>{});setEditPurchase(null);
+  };
+  const togglePurchaseDone=id=>db.ref(`purchaseDone/${purchaseDate}/${id}`).set(!purchaseDone[id]).catch(()=>{});
+  const finishAll=()=>{const done={};dayPurchases.forEach(p=>{done[p.id]=true;});db.ref(`purchaseDone/${purchaseDate}`).set(done).catch(()=>{});};
+  // Warehouse
+  const saveWarehouse=(ingId,qty,costPer)=>{
+    db.ref(`warehouse/${ingId}`).set({qty:Number(qty)||0,costPer:Number(costPer)||0,lastUpdated:Date.now()}).catch(()=>{});
+    setEditWarehouse(null);setShowAddWarehouse(false);setModal(null);
+  };
+  const removeWarehouse=ingId=>db.ref(`warehouse/${ingId}`).remove().catch(()=>{});
+  const addExcess=(ingId,qty,costPer)=>{
+    const cur=warehouse[ingId]||{qty:0,costPer:0};
+    saveWarehouse(ingId,(cur.qty||0)+qty,costPer||cur.costPer);
+  };
+  // Chat
+  const sendMsg=(text,img)=>{
+    if(!text&&!img)return;
+    sndSend();
+    db.ref(`chat/${Date.now()}`).set({id:Date.now(),ts:Date.now(),sender:"admin",text:text||"",image:img||null}).catch(()=>{});
+    setChatInput("");
+  };
+  const compress=file=>new Promise(r=>{const rd=new FileReader();rd.onload=e=>{const img=new Image();img.onload=()=>{const MAX=900,ratio=Math.min(MAX/img.width,MAX/img.height,1);const cv=document.createElement("canvas");cv.width=Math.round(img.width*ratio);cv.height=Math.round(img.height*ratio);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);r(cv.toDataURL("image/jpeg",0.75));};img.src=e.target.result;};rd.readAsDataURL(file);});
+  const openChat=()=>{setChatOpen(true);setChatUnread(0);ls.set("chat_seen",Date.now());setTimeout(()=>chatEndRef.current?.scrollIntoView({behavior:"smooth"}),100);};
+
+  // Excess items calculation (proper)
+  const excess={};
+  (purchases[today]||[]).forEach(p=>{
+    if(!p.ingId||!p.quantity)return;
+    const req=Number(chefShopping[p.ingId])||0;
+    const extra=Number(p.quantity)-req;
+    if(extra>0){if(!excess[p.ingId])excess[p.ingId]={qty:0,costPer:p.costPer||0};excess[p.ingId].qty+=extra;}
+  });
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+  const S={
+    hdr:{background:"#fff",borderBottom:"2px solid #e8f5e9",padding:"10px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 12px rgba(76,153,80,0.08)",position:"sticky",top:0,zIndex:100,gap:10},
+    logo:{display:"flex",alignItems:"center",gap:10,flexShrink:0},
+    main:{maxWidth:920,margin:"0 auto",padding:"16px 14px"},
+    tab:{padding:"5px 9px",borderRadius:16,border:"2px solid #e8f5e9",background:"#fff",color:"#555",fontSize:10,fontWeight:500,cursor:"pointer",position:"relative",whiteSpace:"nowrap"},
+    tabA:{background:"#2e7d32",color:"#fff",borderColor:"#2e7d32"},
+    row:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14},
+    title:{fontFamily:"'Unbounded',sans-serif",fontWeight:700,fontSize:17,color:"#1b5e20"},
+    hint:{fontSize:12,color:"#81c784",marginTop:3},
+    addBtn:{padding:"9px 16px",background:"#4caf50",color:"#fff",border:"none",borderRadius:18,fontFamily:"'Geologica',sans-serif",fontSize:13,fontWeight:500,cursor:"pointer",whiteSpace:"nowrap"},
+    inp:{width:"100%",padding:"9px 12px",borderRadius:10,border:"1.5px solid #e8f5e9",fontSize:14,fontFamily:"'Geologica',sans-serif",marginBottom:10,background:"#fafafa",color:"#2d4a2e"},
+    qInp:{padding:"4px 7px",borderRadius:8,border:"1.5px solid #4caf50",fontSize:13,fontFamily:"'Geologica',sans-serif",background:"#fff",color:"#2d4a2e",textAlign:"right"},
+    okBtn:{padding:"3px 8px",background:"#4caf50",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12},
+    cancelBtn:{padding:"3px 8px",background:"#f5f5f5",color:"#777",border:"none",borderRadius:7,cursor:"pointer",fontSize:12},
+    cancelBtnLg:{padding:"9px 14px",background:"#f5f5f5",border:"none",borderRadius:18,fontFamily:"'Geologica',sans-serif",fontSize:13,cursor:"pointer",color:"#555"},
+    rmBtn:{background:"transparent",border:"none",color:"#d0d0d0",cursor:"pointer",fontSize:13,padding:"2px 5px",borderRadius:5},
+    card:{background:"#fff",borderRadius:16,border:"2px solid #e8f5e9",overflow:"visible"},
+    green:{background:"linear-gradient(135deg,#1b5e20,#2e7d32)",borderRadius:14,padding:"14px 20px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between"},
+    ingRow:{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#fff",borderRadius:11,marginBottom:5,border:"1.5px solid #e8f5e9"},
+    dayRow:{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,marginBottom:5,border:"1.5px solid #f0f0f0"},
+    sumCard:{background:"#fff",borderRadius:12,padding:"12px 16px",border:"2px solid #e8f5e9"},
+  };
+
+  const TABS=[
+    {key:"dishes",label:"🍽️ Блюда"},
+    {key:"ingredients",label:"🥬 Ингред."},
+    {key:"tara",label:"📦 Тара"},
+    {key:"daymenu",label:"📋 Меню",badge:tabBadges.daymenu},
+    {key:"schedule",label:"👨‍🍳 График",badge:tabBadges.schedule},
+    {key:"purchases",label:"🛒 Закупки",badge:tabBadges.purchases},
+    {key:"warehouse",label:"🏪 Склад"},
+  ];
+
+  return <div style={{minHeight:"100vh"}}>
+    <header style={S.hdr}>
+      <div style={S.logo}>
+        <span style={{fontSize:28}}>🌿</span>
+        <div>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontWeight:800,fontSize:16,color:"#2e7d32"}}>
+            Эколавка <span style={{width:8,height:8,borderRadius:"50%",display:"inline-block",background:syncDot==="saving"?"#ffa726":"#4caf50",verticalAlign:"middle"}}/>
+          </div>
+          <div style={{fontSize:10,color:"#81c784"}}>Администратор</div>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
+        {TABS.map(({key,label,badge})=><button key={key} onClick={()=>markTab(key)} style={{...S.tab,...(tab===key?S.tabA:{})}}>
+          {label}
+          {badge>0&&<span style={{position:"absolute",top:-6,right:-6,width:18,height:18,borderRadius:"50%",background:"#e53935",color:"#fff",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{badge}</span>}
+        </button>)}
+      </div>
+    </header>
+
+    <main style={S.main}>
+      {chefCalling&&<div style={{position:"fixed",top:0,left:0,right:0,zIndex:999,background:"linear-gradient(135deg,#e65100,#ff6d00)",color:"#fff",padding:"14px 20px",display:"flex",alignItems:"center",gap:14,boxShadow:"0 4px 24px rgba(230,81,0,0.5)"}}>
+        <span style={{fontSize:28}}>📞</span>
+        <div style={{flex:1}}><div style={{fontFamily:"'Unbounded',sans-serif",fontSize:14,fontWeight:700}}>Повар вызывает!</div></div>
+        <button onClick={()=>setChefCalling(false)} style={{background:"rgba(255,255,255,0.25)",border:"none",color:"#fff",padding:"7px 14px",borderRadius:20,cursor:"pointer",fontWeight:600}}>Принято ✓</button>
+      </div>}
+
+      {/* ── DISHES ── */}
+      {tab==="dishes"&&<>
+        <div style={S.row}>
+          <div><div style={S.title}>Блюда</div><div style={S.hint}>Нажмите на блюдо для редактирования</div></div>
+          <button className="add-btn" style={S.addBtn} onClick={()=>{setModal("addDish");setModalData({name:"",emoji:"🍽️"});}}>+ Добавить</button>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,background:"#fff",border:"1.5px solid #e8f5e9",borderRadius:12,padding:"8px 12px",marginBottom:12}}>
+          <span>🔍</span>
+          <input style={{flex:1,border:"none",background:"none",fontSize:14,fontFamily:"'Geologica',sans-serif",color:"#2d4a2e",outline:"none"}} placeholder="Найти блюдо..." value={dishSearch} onChange={e=>setDishSearch(e.target.value)}/>
+          {dishSearch&&<button style={{background:"none",border:"none",color:"#bdbdbd",cursor:"pointer"}} onClick={()=>setDishSearch("")}>✕</button>}
+        </div>
+        {dishes.filter(d=>d.name.toLowerCase().includes(dishSearch.toLowerCase())).map(dish=>{
+          const cost=dishCost(dish);const missing=dishMissing(dish);
+          return <DishBlock key={dish.id} dish={dish} ingredients={ingredients} taraList={taraList} cost={cost} missing={missing}
+            onUpdate={updateDish} onDelete={deleteDish} getIngCostPer={getIngCostPer}
+            onCostError={()=>{setModal("costError");setModalData({dishName:dish.name,missing});}}
+          />;
+        })}
+      </>}
+
+      {/* ── INGREDIENTS ── */}
+      {tab==="ingredients"&&<>
+        <div style={S.row}>
+          <div><div style={S.title}>Ингредиенты</div><div style={S.hint}>{ingredients.length} позиций</div></div>
+          <button className="add-btn" style={S.addBtn} onClick={()=>{setModal("addIng");setModalData({name:"",unit:"кг",category:"Овощи"});}}>+ Добавить</button>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,background:"#fff",border:"1.5px solid #e8f5e9",borderRadius:12,padding:"8px 12px",marginBottom:12}}>
+          <span>🔍</span>
+          <input style={{flex:1,border:"none",background:"none",fontSize:14,fontFamily:"'Geologica',sans-serif",color:"#2d4a2e",outline:"none"}} placeholder="Найти..." value={ingSearch} onChange={e=>setIngSearch(e.target.value)}/>
+          {ingSearch&&<button style={{background:"none",border:"none",color:"#bdbdbd",cursor:"pointer"}} onClick={()=>setIngSearch("")}>✕</button>}
+        </div>
+        {visCats.map(cat=><div key={cat} style={{marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:7,fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:600,color:"#388e3c",marginBottom:7}}>
+            <span style={{width:10,height:10,borderRadius:"50%",background:CC[cat]||"#aaa",display:"inline-block"}}/>
+            {cat}
+          </div>
+          {ingredients.filter(i=>i.category===cat&&i.name.toLowerCase().includes(ingSearch.toLowerCase())).map(ing=>{
+            const cp=getIngCostPer(ing.id);
+            return <div key={ing.id} className="hov-row" style={S.ingRow}>
+              <span style={{flex:1,fontSize:13,color:"#2d4a2e",fontWeight:500}}>{ing.name}</span>
+              {editIngUnit?.id===ing.id?<div style={{display:"flex",gap:4}}>
+                {UNITS.map(u=><button key={u} onClick={()=>saveIngUnit(ing.id,u)} style={{padding:"3px 9px",borderRadius:16,fontSize:11,cursor:"pointer",background:editIngUnit.unit===u?"#4caf50":"#f1f8e9",color:editIngUnit.unit===u?"#fff":"#4caf50",border:`1.5px solid ${editIngUnit.unit===u?"#4caf50":"#c8e6c9"}`}}>{u}</button>)}
+                <button style={S.cancelBtn} onClick={()=>setEditIngUnit(null)}>✕</button>
+              </div>:<button onClick={()=>setEditIngUnit({id:ing.id,unit:ing.unit})} style={{padding:"3px 9px",borderRadius:16,background:"#f1f8e9",border:"1.5px solid #c8e6c9",fontSize:11,color:"#4caf50",cursor:"pointer",fontWeight:600}}>{ing.unit} ✎</button>}
+              {cp!==null?<span style={{fontSize:11,color:"#558b2f",background:"#f9fbe7",padding:"2px 8px",borderRadius:10,border:"1px solid #dcedc8"}}>💰 {cp.toFixed(3)} ₽/{ing.unit}</span>
+                :<span style={{fontSize:11,color:"#f57f17",background:"#fff8e1",padding:"2px 8px",borderRadius:10,border:"1px solid #ffe082"}}>нет цены</span>}
+              <span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:(CC[ing.category]||"#aaa")+"22",color:CC[ing.category]||"#555",fontWeight:500}}>{ing.category}</span>
+              <button style={S.rmBtn} onClick={()=>removeIng(ing.id)}>✕</button>
+            </div>;
+          })}
+        </div>)}
+      </>}
+
+      {/* ── TARA ── */}
+      {tab==="tara"&&<>
+        <div style={S.row}>
+          <div><div style={S.title}>📦 Тара</div><div style={S.hint}>Упаковка для блюд</div></div>
+          <button className="add-btn" style={S.addBtn} onClick={()=>{setModal("addTara");setModalData({name:"",cost:""});}}>+ Добавить</button>
+        </div>
+        <div style={{background:"#fff",borderRadius:16,border:"1.5px solid #e8f5e9",overflow:"hidden",marginBottom:16}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 120px 100px 80px",padding:"9px 14px",fontSize:10,color:"#bdbdbd",textTransform:"uppercase",letterSpacing:"0.5px",fontWeight:600,borderBottom:"1px solid #f1f8e9"}}>
+            <span>Название</span><span style={{textAlign:"center"}}>Стоимость</span><span style={{textAlign:"center"}}>Блюд</span><span/>
+          </div>
+          {taraList.length===0&&<div style={{padding:"20px",textAlign:"center",fontSize:13,color:"#bdbdbd"}}>Добавьте первую тару</div>}
+          {taraList.map(t=>{
+            const used=dishes.filter(d=>d.taraId===t.id);
+            const isEd=editTara?.id===t.id;
+            return <div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr 120px 100px 80px",padding:"11px 14px",borderBottom:"1px solid #f9fbe7",alignItems:"center"}}>
+              {isEd?<>
+                <input style={{...S.inp,marginBottom:0,padding:"5px 9px",fontSize:13}} value={editTara.name} onChange={e=>setEditTara({...editTara,name:e.target.value})}/>
+                <div style={{display:"flex",alignItems:"center",gap:4,justifyContent:"center"}}>
+                  <input type="number" style={{...S.qInp,width:65}} value={editTara.cost} onFocus={sel} onChange={e=>setEditTara({...editTara,cost:e.target.value})}/>
+                  <span style={{fontSize:11,color:"#9e9e9e"}}>₽</span>
+                </div>
+                <span/>
+                <div style={{display:"flex",gap:4}}>
+                  <button style={S.okBtn} onClick={()=>saveTara(t.id,editTara.name,editTara.cost)}>✓</button>
+                  <button style={S.cancelBtn} onClick={()=>setEditTara(null)}>✕</button>
+                </div>
+              </>:<>
+                <span style={{fontWeight:600,fontSize:13,color:"#2d4a2e"}}>📦 {t.name}</span>
+                <span style={{textAlign:"center",fontFamily:"'Unbounded',sans-serif",fontSize:13,fontWeight:700,color:"#e65100"}}>{t.cost} ₽</span>
+                <span style={{textAlign:"center",fontSize:12,color:"#81c784"}}>{used.length} блюд</span>
+                <div style={{display:"flex",gap:4,justifyContent:"flex-end"}}>
+                  <button style={{...S.okBtn,background:"#f1f8e9",color:"#4caf50"}} onClick={()=>setEditTara({id:t.id,name:t.name,cost:t.cost})}>✎</button>
+                  <button style={S.rmBtn} onClick={()=>deleteTara(t.id)}>✕</button>
+                </div>
+              </>}
+            </div>;
+          })}
+        </div>
+        <div style={{background:"#f9fbe7",borderRadius:12,padding:"10px 14px",border:"1px solid #dcedc8",fontSize:12,color:"#558b2f"}}>
+          💡 Тара привязывается к блюду во вкладке <strong>«Блюда»</strong>
+        </div>
+      </>}
+
+      {/* ── DAY MENU ── */}
+      {tab==="daymenu"&&<>
+        <div style={S.row}>
+          <div><div style={S.title}>📋 Меню на день</div><div style={S.hint}>{isReadOnly?"🔒 Только просмотр":"Повар видит изменения в реальном времени"}</div></div>
+          <div style={{display:"flex",gap:7,alignItems:"center"}}>
+            <input type="date" style={{...S.inp,width:"auto",marginBottom:0,padding:"7px 10px",fontSize:12}} value={menuDate} onChange={e=>setMenuDate(e.target.value)}/>
+            {!isReadOnly&&dayPortionsTotal>0&&<button style={{fontSize:12,color:"#bdbdbd",background:"#f5f5f5",border:"none",borderRadius:16,padding:"5px 10px",cursor:"pointer"}} onClick={clearDay}>Сбросить</button>}
+            {!isReadOnly&&dayPortionsTotal>0&&<button onClick={publishMenu} style={{padding:"8px 12px",background:published?"#388e3c":"#1b5e20",color:"#fff",border:"none",borderRadius:18,fontSize:12,fontWeight:600,cursor:"pointer",transition:"all 0.3s"}}>{published?"✓ Отправлено":"🔔 Повару"}</button>}
+          </div>
+        </div>
+        {dayPortionsTotal>0&&<div style={{background:"#e8f5e9",borderRadius:12,padding:"10px 14px",marginBottom:12,border:"2px solid #a5d6a7",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div><div style={{fontFamily:"'Unbounded',sans-serif",fontSize:11,fontWeight:700,color:"#2e7d32"}}>👨‍🍳 Прогресс</div><div style={{fontSize:12,color:"#4caf50",marginTop:2}}>{doneCount} из {activeDay.length} готово</div></div>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:18,fontWeight:900,color:"#2e7d32"}}>{activeDay.length>0?Math.round(doneCount/activeDay.length*100):0}%</div>
+        </div>}
+        <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{...S.card,padding:"10px 14px",marginBottom:10,borderColor:isReadOnly?"#ffe082":"#e8f5e9",background:isReadOnly?"#fffde7":"#fff",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:700,color:"#1b5e20",textTransform:"capitalize"}}>{new Date(menuDate+"T00:00:00").toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"})}</span>
+              {dayPortionsTotal>0&&<span style={{fontSize:12,color:"#81c784"}}>{dayPortionsTotal} порц. · {dayTotal.toFixed(0)} ₽</span>}
+            </div>
+            <div style={{display:"flex",alignItems:"center",padding:"6px 12px 4px",fontSize:9,color:"#bdbdbd",textTransform:"uppercase",letterSpacing:"0.5px",fontWeight:600,marginBottom:4}}>
+              <span style={{flex:1}}>Блюдо</span><span style={{width:90,textAlign:"center"}}>С/С</span><span style={{width:130,textAlign:"center"}}>Порций</span><span style={{width:100,textAlign:"right"}}>Итого</span>
+            </div>
+            {dishes.map(dish=>{
+              const portions=dayPortions[dish.id]||0;const dc=dishCost(dish);const active=portions>0;
+              return <DayRow key={dish.id} dish={dish} portions={portions} dishCost={dc} rowTotal={dc*portions} readOnly={isReadOnly} chefDone={!!chefDone[dish.id]} onSet={v=>setPortions(dish.id,v)}/>;
+            })}
+            <div style={{...S.sumCard,marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}><span style={{fontSize:13,color:"#555"}}>Итого порций:</span><span style={{fontFamily:"'Unbounded',sans-serif",fontWeight:700,fontSize:13,color:"#2e7d32"}}>{dayPortionsTotal}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"#555"}}>Себестоимость:</span><span style={{fontFamily:"'Unbounded',sans-serif",fontWeight:700,fontSize:16,color:"#e65100"}}>{dayTotal.toFixed(2)} ₽</span></div>
+            </div>
+            {dayPortionsTotal>0&&<>
+              <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:700,color:"#1b5e20",marginBottom:10}}>🧺 Сводная закупка</div>
+              <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #e8f5e9",overflow:"hidden"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 120px",padding:"7px 12px",fontSize:9,color:"#bdbdbd",textTransform:"uppercase",letterSpacing:"0.5px",fontWeight:600,borderBottom:"1px solid #f1f8e9"}}><span>Ингредиент</span><span style={{textAlign:"right"}}>Кол-во</span></div>
+                {dayIngTotals().map(({ing,total},i)=><div key={ing.id} style={{display:"grid",gridTemplateColumns:"1fr 120px",padding:"8px 12px",borderBottom:"1px solid #fafafa",background:i%2===0?"#fff":"#fafff8",alignItems:"center"}}>
+                  <span style={{fontSize:13,color:"#2d4a2e",fontWeight:500}}>{ing.name}</span>
+                  <span style={{textAlign:"right",fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:700,color:"#2e7d32"}}>{fmt(total)} {ing.unit}</span>
+                </div>)}
+              </div>
+            </>}
+          </div>
+          {savedDates.length>0&&<div style={{width:120,flexShrink:0,background:"#fff",borderRadius:12,border:"1.5px solid #e8f5e9",padding:"10px 8px",display:"flex",flexDirection:"column",gap:5,position:"sticky",top:80,alignSelf:"flex-start"}}>
+            <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:9,fontWeight:700,color:"#81c784",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:3}}>📅 История</div>
+            {savedDates.map(d=><button key={d} onClick={()=>setMenuDate(d)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:8,border:`1.5px solid ${d===menuDate?"#a5d6a7":"#e8f5e9"}`,background:d===menuDate?"#e8f5e9":"#fff",cursor:"pointer",fontSize:11,color:d===menuDate?"#2e7d32":"#555",fontWeight:d===menuDate?700:400}}>
+              <span>{new Date(d+"T00:00:00").toLocaleDateString("ru-RU",{day:"numeric",month:"short"})}</span>
+              {d<today?<span style={{fontSize:10}}>🔒</span>:<span style={{fontSize:9,color:"#4caf50"}}>сег.</span>}
+            </button>)}
+          </div>}
+        </div>
+      </>}
+
+      {/* ── SCHEDULE ── */}
+      {tab==="schedule"&&<>
+        <div style={S.row}>
+          <div><div style={S.title}>👨‍🍳 График</div><div style={S.hint}>Отметьте кто работает</div></div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <input type="date" style={{...S.inp,width:"auto",marginBottom:0,padding:"7px 10px",fontSize:12}} value={scheduleDate} onChange={e=>setScheduleDate(e.target.value)}/>
+            <button className="add-btn" style={S.addBtn} onClick={()=>{setModal("addCook");setModalData({name:"",salary:""});}}>+ Повар</button>
+          </div>
+        </div>
+        <div style={S.green}>
+          <div>
+            <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:11,fontWeight:700,color:"#a5d6a7",textTransform:"uppercase",marginBottom:4}}>{new Date(scheduleDate+"T00:00:00").toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"})}</div>
+            <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:13,fontWeight:700,color:"#fff"}}>Работает: {workingCooks.length} из {cooks.length}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:11,color:"#a5d6a7",marginBottom:4}}>Итого зарплата</div>
+            <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:22,fontWeight:900,color:"#fff"}}>{totalSalary.toLocaleString("ru-RU")} ₽</div>
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:16}}>
+          {cooks.map((cook,idx)=>{
+            const isW=!!scheduleData[cook.id];const isEd=editCook?.id===cook.id;
+            return <div key={cook.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",background:"#fff",borderRadius:12,border:`2px solid ${isW?"#a5d6a7":"#f0f0f0"}`}}>
+              <div style={{width:26,height:26,borderRadius:"50%",background:isW?"#e8f5e9":"#f5f5f5",color:isW?"#2e7d32":"#bbb",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{idx+1}</div>
+              {isEd?<div style={{flex:1,display:"flex",gap:8,alignItems:"center"}}>
+                <input style={{...S.qInp,flex:1,textAlign:"left"}} value={editCook.name} onChange={e=>setEditCook({...editCook,name:e.target.value})} placeholder="Имя"/>
+                <input type="number" style={{...S.qInp,width:90}} value={editCook.salary} onFocus={sel} onChange={e=>setEditCook({...editCook,salary:e.target.value})} placeholder="₽"/>
+                <button style={S.okBtn} onClick={()=>saveCook(cook.id,editCook.name,editCook.salary)}>✓</button>
+                <button style={S.cancelBtn} onClick={()=>setEditCook(null)}>✕</button>
+              </div>:<>
+                <span style={{flex:1,fontFamily:"'Unbounded',sans-serif",fontSize:13,fontWeight:700,color:isW?"#1b5e20":"#9e9e9e"}}>{cook.name}</span>
+                <span style={{width:120,textAlign:"center",fontSize:12,color:"#555"}}>{cook.salary.toLocaleString("ru-RU")} ₽/день</span>
+                <button onClick={()=>toggleCook(cook.id)} style={{padding:"5px 12px",borderRadius:18,border:`2px solid ${isW?"#4caf50":"#e0e0e0"}`,background:isW?"#4caf50":"#f5f5f5",color:isW?"#fff":"#9e9e9e",fontSize:12,fontWeight:600,cursor:"pointer"}}>{isW?"✓ Работает":"Выходной"}</button>
+                <span style={{width:90,textAlign:"right",fontSize:13,fontWeight:700,color:isW?"#2e7d32":"#ccc",fontFamily:"'Unbounded',sans-serif"}}>{isW?`${cook.salary.toLocaleString("ru-RU")} ₽`:"—"}</span>
+                <div style={{display:"flex",gap:4}}>
+                  <button style={{...S.okBtn,background:"#f1f8e9",color:"#4caf50"}} onClick={()=>setEditCook({id:cook.id,name:cook.name,salary:cook.salary})}>✎</button>
+                  <button style={S.rmBtn} onClick={()=>deleteCook(cook.id)}>✕</button>
+                </div>
+              </>}
+            </div>;
+          })}
+        </div>
+        <div style={{...S.sumCard}}>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #f1f8e9"}}><span style={{fontSize:13,color:"#555"}}>Работает:</span><span style={{fontFamily:"'Unbounded',sans-serif",fontWeight:700,fontSize:13,color:"#2e7d32"}}>{workingCooks.length} чел.</span></div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #f1f8e9"}}><span style={{fontSize:13,color:"#555"}}>Выходной:</span><span style={{fontFamily:"'Unbounded',sans-serif",fontWeight:700,fontSize:13,color:"#9e9e9e"}}>{cooks.length-workingCooks.length} чел.</span></div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0 0"}}><span style={{fontSize:14,fontWeight:600,color:"#555"}}>💰 Итого:</span><span style={{fontFamily:"'Unbounded',sans-serif",fontWeight:900,fontSize:18,color:"#e65100"}}>{totalSalary.toLocaleString("ru-RU")} ₽</span></div>
+        </div>
+      </>}
+
+      {/* ── PURCHASES ── */}
+      {tab==="purchases"&&<>
+        <div style={S.row}>
+          <div><div style={S.title}>🛒 Закупки</div><div style={S.hint}>Поставщики и суммы</div></div>
+          <button onClick={()=>setShowPeriod(v=>!v)} style={{...S.tab,...(showPeriod?S.tabA:{}),fontSize:11,padding:"7px 12px"}}>{showPeriod?"✕ Период":"📅 Период"}</button>
+        </div>
+        {showPeriod&&<div style={{background:"#fff",border:"2px solid #e8f5e9",borderRadius:14,padding:"14px",marginBottom:16}}>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:700,color:"#2e7d32",marginBottom:10}}>📅 Период</div>
+          <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:12,color:"#9e9e9e"}}>С:</span><input type="date" style={{...S.inp,marginBottom:0,width:"auto",padding:"6px 9px",fontSize:12}} value={periodFrom} onChange={e=>setPeriodFrom(e.target.value)}/></div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:12,color:"#9e9e9e"}}>По:</span><input type="date" style={{...S.inp,marginBottom:0,width:"auto",padding:"6px 9px",fontSize:12}} value={periodTo} onChange={e=>setPeriodTo(e.target.value)}/></div>
+          </div>
+          <div style={{background:"linear-gradient(135deg,#1b5e20,#2e7d32)",borderRadius:12,padding:"11px 14px",marginBottom:periodPurchases.length?10:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:12,color:"#a5d6a7"}}>{periodPurchases.reduce((s,[,l])=>s+l.length,0)} записей</span>
+            <span style={{fontFamily:"'Unbounded',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{periodTotal.toLocaleString("ru-RU")} ₽</span>
+          </div>
+          {periodPurchases.map(([date,list])=>{const dt=list.reduce((s,p)=>s+(p.amount||0),0);return<div key={date} style={{background:"#f9fbe7",borderRadius:10,padding:"8px 12px",border:"1px solid #e8f5e9",marginTop:7}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+              <span style={{fontFamily:"'Unbounded',sans-serif",fontSize:11,fontWeight:700,color:"#388e3c"}}>{new Date(date+"T00:00:00").toLocaleDateString("ru-RU",{day:"numeric",month:"short",weekday:"short"})}</span>
+              <span style={{fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:700,color:"#e65100"}}>{dt.toLocaleString("ru-RU")} ₽</span>
+            </div>
+            {list.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#555",padding:"1px 0"}}>
+              <span>{p.supplier}{p.ingId&&ingredients.find(i=>i.id===p.ingId)?` · ${ingredients.find(i=>i.id===p.ingId).name}`:""}</span>
+              <span style={{fontWeight:600}}>{p.amount.toLocaleString("ru-RU")} ₽</span>
+            </div>)}
+          </div>;})}
+          {periodPurchases.length===0&&<div style={{textAlign:"center",padding:"14px",fontSize:13,color:"#bdbdbd"}}>Нет закупок за период</div>}
+        </div>}
+        {chefShoppingItems.length>0&&<div style={{background:"#fff8e1",border:"2px solid #ffe082",borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:11,fontWeight:700,color:"#f57f17",marginBottom:8}}>🧑‍🍳 Повар запросил закупку</div>
+          {chefShoppingItems.map(({ing,qty})=><div key={ing.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"4px 0",borderBottom:"1px solid #fff8e1"}}>
+            <span style={{color:"#2d4a2e",fontWeight:500}}>{ing.name}</span>
+            <span style={{fontWeight:700,color:"#e65100"}}>{qty} {ing.unit}</span>
+          </div>)}
+        </div>}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <input type="date" style={{...S.inp,width:"auto",marginBottom:0,padding:"6px 9px",fontSize:12}} value={purchaseDate} onChange={e=>setPurchaseDate(e.target.value)}/>
+            <span style={{fontSize:12,color:"#81c784"}}>{dayPurchases.length} записей</span>
+          </div>
+          <div style={{display:"flex",gap:7}}>
+            {dayPurchases.length>0&&!allDone&&<button style={{...S.addBtn,background:"#388e3c",fontSize:12,padding:"8px 12px"}} onClick={finishAll}>✓ Все куплено</button>}
+            {allDone&&<span style={{fontSize:12,color:"#4caf50",fontWeight:600,padding:"8px 0"}}>✓ Выполнено</span>}
+            <button className="add-btn" style={S.addBtn} onClick={()=>setAddingPurchase(true)}>+ Добавить</button>
+          </div>
+        </div>
+        {dayPurchases.length>0&&<div style={{background:"linear-gradient(135deg,#e8f5e9,#f1f8e9)",border:"2px solid #a5d6a7",borderRadius:12,padding:"9px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontSize:13,color:"#388e3c",fontWeight:500}}>Итого за {new Date(purchaseDate+"T00:00:00").toLocaleDateString("ru-RU",{day:"numeric",month:"long"})}</span>
+          <span style={{fontFamily:"'Unbounded',sans-serif",fontSize:15,fontWeight:900,color:"#e65100"}}>{dayPurchaseTotal.toLocaleString("ru-RU")} ₽</span>
+        </div>}
+        {addingPurchase&&<PurchaseForm ingredients={ingredients} onSave={addPurchase} onCancel={()=>setAddingPurchase(false)} data={modalData} setData={setModalData}/>}
+        {dayPurchases.length===0&&!addingPurchase&&<div style={{textAlign:"center",padding:"30px 0",color:"#bdbdbd",fontStyle:"italic"}}><div style={{fontSize:36,marginBottom:8}}>🛒</div>Нет закупок за этот день</div>}
+        <div style={{display:"flex",flexDirection:"column",gap:7}}>
+          {dayPurchases.map((p,idx)=>{
+            const isDone=!!purchaseDone[p.id];
+            return <div key={p.id} style={{display:"flex",alignItems:"center",gap:9,padding:"11px 13px",background:isDone?"#f9fbe7":"#fff",borderRadius:12,border:`1.5px solid ${isDone?"#a5d6a7":"#e8f5e9"}`,opacity:isDone?0.75:1}}>
+              <div style={{width:24,height:24,borderRadius:"50%",background:"#f1f8e9",color:"#81c784",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{idx+1}</div>
+              {editPurchase?.id===p.id?<div style={{flex:1,display:"flex",gap:7,alignItems:"center",flexWrap:"wrap"}}>
+                <input style={{...S.inp,marginBottom:0,flex:2,minWidth:100}} value={editPurchase.supplier} onChange={e=>setEditPurchase({...editPurchase,supplier:e.target.value})}/>
+                <input type="number" style={{...S.inp,marginBottom:0,width:90}} value={editPurchase.amount} onFocus={sel} onChange={e=>setEditPurchase({...editPurchase,amount:e.target.value})}/>
+                <button style={S.okBtn} onClick={saveEditPurchase}>✓</button>
+                <button style={S.cancelBtn} onClick={()=>setEditPurchase(null)}>✕</button>
+              </div>:<>
+                <button onClick={()=>togglePurchaseDone(p.id)} style={{width:26,height:26,borderRadius:"50%",border:`2px solid ${isDone?"#4caf50":"#e0e0e0"}`,background:isDone?"#4caf50":"transparent",color:isDone?"#fff":"#ccc",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{isDone?"✓":"○"}</button>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:isDone?"#81c784":"#2d4a2e",textDecoration:isDone?"line-through":"none"}}>{p.supplier}</div>
+                  {p.ingId&&(()=>{const ing=ingredients.find(i=>i.id===p.ingId);return ing?<div style={{fontSize:11,color:"#81c784",marginTop:2}}>{ing.name} · {p.quantity} {ing.unit}{p.costPer?` · ${p.costPer.toFixed(3)} ₽/${ing.unit}`:""}</div>:null;})()}
+                </div>
+                <span style={{fontFamily:"'Unbounded',sans-serif",fontSize:13,fontWeight:700,color:"#e65100",whiteSpace:"nowrap"}}>{p.amount.toLocaleString("ru-RU")} ₽</span>
+                {!isDone&&<button style={{...S.okBtn,background:"#f1f8e9",color:"#4caf50"}} onClick={()=>setEditPurchase({...p,date:purchaseDate})}>✎</button>}
+                <button style={S.rmBtn} onClick={()=>deletePurchase(purchaseDate,p.id)}>✕</button>
+              </>}
+            </div>;
+          })}
+        </div>
+      </>}
+
+      {/* ── WAREHOUSE ── */}
+      {tab==="warehouse"&&<>
+        <div style={S.row}>
+          <div><div style={S.title}>🏪 Склад</div><div style={S.hint}>Остатки ингредиентов</div></div>
+          <button className="add-btn" style={S.addBtn} onClick={()=>setShowAddWarehouse(true)}>+ Добавить</button>
+        </div>
+        {Object.keys(excess).length>0&&<div style={{background:"#fff8e1",border:"2px solid #ffe082",borderRadius:14,padding:"14px",marginBottom:16}}>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:700,color:"#f57f17",marginBottom:10}}>📦 Излишки из сегодняшних закупок</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {Object.entries(excess).map(([ingId,item])=>{
+              const ing=ingredients.find(i=>i.id===Number(ingId));if(!ing)return null;
+              return <div key={ingId} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"#fff",borderRadius:10,border:"1px solid #ffe082"}}>
+                <div style={{flex:1}}>
+                  <span style={{fontWeight:600,fontSize:13,color:"#2d4a2e"}}>{ing.name}</span>
+                  <span style={{fontSize:12,color:"#f57f17",marginLeft:8}}>+{fmt(item.qty)} {ing.unit}</span>
+                  {item.costPer>0&&<span style={{fontSize:11,color:"#9e9e9e",marginLeft:6}}>{item.costPer.toFixed(3)} ₽/{ing.unit}</span>}
+                </div>
+                <button className="add-btn" style={{...S.addBtn,fontSize:12,padding:"6px 12px"}} onClick={()=>addExcess(Number(ingId),item.qty,item.costPer)}>На склад</button>
+              </div>;
+            })}
+          </div>
+        </div>}
+        <div style={S.green}>
+          <div>
+            <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:11,fontWeight:700,color:"#a5d6a7",textTransform:"uppercase",marginBottom:4}}>Позиций</div>
+            <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:22,fontWeight:900,color:"#fff"}}>{Object.keys(warehouse).length}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:11,color:"#a5d6a7",marginBottom:4}}>Общая стоимость</div>
+            <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:22,fontWeight:900,color:"#fff"}}>{warehouseTotal.toFixed(2)} ₽</div>
+          </div>
+        </div>
+        {showAddWarehouse&&<div style={{background:"#fff",border:"2px solid #4caf50",borderRadius:12,padding:"14px",marginBottom:14}}>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:700,color:"#2e7d32",marginBottom:10}}>Добавить на склад</div>
+          <select style={S.inp} value={modalData.ingId||""} onChange={e=>setModalData({...modalData,ingId:e.target.value})}>
+            <option value="">— выберите ингредиент —</option>
+            {ingredients.map(i=><option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+          </select>
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <input type="number" min="0" step="0.001" style={{...S.inp,marginBottom:0,flex:1}} placeholder="Количество" value={modalData.qty||""} onFocus={sel} onChange={e=>setModalData({...modalData,qty:e.target.value})}/>
+            <span style={{fontSize:12,color:"#9e9e9e",alignSelf:"center",whiteSpace:"nowrap"}}>{ingredients.find(i=>i.id===Number(modalData.ingId))?.unit||"ед."}</span>
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <input type="number" min="0" step="0.001" style={{...S.inp,marginBottom:0,flex:1}} placeholder="Себестоимость (₽/ед.)" value={modalData.costPer||""} onFocus={sel} onChange={e=>setModalData({...modalData,costPer:e.target.value})}/>
+            <span style={{fontSize:12,color:"#9e9e9e",alignSelf:"center"}}>₽</span>
+          </div>
+          {modalData.qty&&modalData.costPer&&<div style={{background:"#f9fbe7",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#558b2f",marginBottom:8}}>
+            💰 Сумма: {(Number(modalData.qty)*Number(modalData.costPer)).toFixed(2)} ₽
+          </div>}
+          <div style={{display:"flex",gap:7,justifyContent:"flex-end"}}>
+            <button style={S.cancelBtn} onClick={()=>{setShowAddWarehouse(false);setModalData({});}}>Отмена</button>
+            <button className="add-btn" style={S.addBtn} onClick={()=>{if(modalData.ingId&&modalData.qty){saveWarehouse(modalData.ingId,modalData.qty,modalData.costPer);setModalData({});}}}>Добавить</button>
+          </div>
+        </div>}
+        {Object.keys(warehouse).length===0&&!showAddWarehouse?<div style={{textAlign:"center",padding:"30px 0",color:"#bdbdbd",fontStyle:"italic"}}><div style={{fontSize:36,marginBottom:8}}>📦</div>Склад пуст</div>:(
+          <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #e8f5e9",overflow:"hidden"}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 100px 100px 100px 70px",padding:"8px 13px",fontSize:9,color:"#bdbdbd",textTransform:"uppercase",letterSpacing:"0.5px",fontWeight:600,borderBottom:"1px solid #f1f8e9"}}>
+              <span>Ингредиент</span><span style={{textAlign:"center"}}>Остаток</span><span style={{textAlign:"center"}}>Цена/ед.</span><span style={{textAlign:"right"}}>Сумма</span><span/>
+            </div>
+            {Object.entries(warehouse).map(([ingId,item])=>{
+              const ing=ingredients.find(i=>i.id===Number(ingId));if(!ing)return null;
+              const isEd=editWarehouse?.ingId===ingId;
+              const total=(item.qty||0)*(item.costPer||0);
+              return <div key={ingId} style={{display:"grid",gridTemplateColumns:"1fr 100px 100px 100px 70px",padding:"10px 13px",borderBottom:"1px solid #fafafa",alignItems:"center"}}>
+                {isEd?<>
+                  <span style={{fontWeight:600,fontSize:13,color:"#1b5e20"}}>{ing.name}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>
+                    <input type="number" min="0" step="0.001" style={{...S.qInp,width:62}} value={editWarehouse.qty} onFocus={sel} onChange={e=>setEditWarehouse({...editWarehouse,qty:e.target.value})}/>
+                    <span style={{fontSize:9,color:"#9e9e9e"}}>{ing.unit}</span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>
+                    <input type="number" min="0" step="0.001" style={{...S.qInp,width:62}} value={editWarehouse.costPer} onFocus={sel} onChange={e=>setEditWarehouse({...editWarehouse,costPer:e.target.value})}/>
+                    <span style={{fontSize:9,color:"#9e9e9e"}}>₽</span>
+                  </div>
+                  <span/>
+                  <div style={{display:"flex",gap:3}}>
+                    <button style={S.okBtn} onClick={()=>saveWarehouse(ingId,editWarehouse.qty,editWarehouse.costPer)}>✓</button>
+                    <button style={S.cancelBtn} onClick={()=>setEditWarehouse(null)}>✕</button>
+                  </div>
+                </>:<>
+                  <div>
+                    <div style={{fontWeight:600,fontSize:13,color:"#1b5e20"}}>{ing.name}</div>
+                    {item.lastUpdated&&<div style={{fontSize:9,color:"#bdbdbd",marginTop:1}}>{new Date(item.lastUpdated).toLocaleDateString("ru-RU",{day:"numeric",month:"short"})}</div>}
+                  </div>
+                  <div style={{textAlign:"center",fontFamily:"'Unbounded',sans-serif",fontSize:13,fontWeight:700,color:item.qty>0?"#2e7d32":"#e53935"}}>{fmt(item.qty||0)} <span style={{fontSize:9,fontWeight:400}}>{ing.unit}</span></div>
+                  <div style={{textAlign:"center",fontSize:11,color:"#558b2f"}}>{item.costPer>0?`${item.costPer.toFixed(3)} ₽`:"—"}</div>
+                  <div style={{textAlign:"right",fontFamily:"'Unbounded',sans-serif",fontSize:11,fontWeight:700,color:"#e65100"}}>{total>0?`${total.toFixed(2)} ₽`:"—"}</div>
+                  <div style={{display:"flex",gap:3,justifyContent:"flex-end"}}>
+                    <button style={{...S.okBtn,background:"#f1f8e9",color:"#4caf50"}} onClick={()=>setEditWarehouse({ingId,qty:item.qty,costPer:item.costPer})}>✎</button>
+                    <button style={S.rmBtn} onClick={()=>removeWarehouse(ingId)}>✕</button>
+                  </div>
+                </>}
+              </div>;
+            })}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 100px 100px 100px 70px",padding:"11px 13px",background:"#f9fbe7"}}>
+              <span style={{fontFamily:"'Unbounded',sans-serif",fontSize:10,fontWeight:700,color:"#2e7d32"}}>ИТОГО</span>
+              <span/><span/>
+              <span style={{textAlign:"right",fontFamily:"'Unbounded',sans-serif",fontSize:13,fontWeight:900,color:"#e65100"}}>{warehouseTotal.toFixed(2)} ₽</span>
+              <span/>
+            </div>
+          </div>
+        )}
+      </>}
+    </main>
+
+    {/* ── CHAT ── */}
+    <button onClick={openChat} style={{position:"fixed",bottom:24,right:24,width:50,height:50,borderRadius:"50%",background:"#2e7d32",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 20px rgba(46,125,50,0.5)",zIndex:500}}>
+      💬
+      {chatUnread>0&&<span style={{position:"absolute",top:0,right:0,width:18,height:18,borderRadius:"50%",background:"#e53935",color:"#fff",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{chatUnread}</span>}
+    </button>
+    {chatOpen&&<div style={{position:"fixed",bottom:82,right:24,width:330,maxHeight:500,background:"#fff",borderRadius:18,boxShadow:"0 8px 40px rgba(0,0,0,0.18)",border:"1.5px solid #e8f5e9",display:"flex",flexDirection:"column",zIndex:500}}>
+      <div style={{background:"#2e7d32",borderRadius:"16px 16px 0 0",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:700,color:"#fff"}}>💬 Чат с поваром</div>
+        <button onClick={()=>setChatOpen(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",width:26,height:26,borderRadius:"50%",cursor:"pointer",fontSize:13}}>✕</button>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"10px",display:"flex",flexDirection:"column",gap:7,minHeight:180,maxHeight:300}}>
+        {chatMsgs.length===0&&<div style={{textAlign:"center",color:"#bdbdbd",fontSize:13,margin:"auto"}}>Нет сообщений</div>}
+        {chatMsgs.map(msg=>{const isMe=msg.sender==="admin";return <div key={msg.id} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start"}}>
+          <div style={{maxWidth:"80%",background:isMe?"#e8f5e9":"#f5f5f5",borderRadius:isMe?"14px 14px 4px 14px":"14px 14px 14px 4px",padding:"7px 10px"}}>
+            <div style={{fontSize:9,color:isMe?"#388e3c":"#9e9e9e",marginBottom:3,fontWeight:600}}>{isMe?"Администратор":"Повар"}</div>
+            {msg.image&&<img src={msg.image} style={{maxWidth:"100%",borderRadius:7,display:"block",marginBottom:msg.text?5:0}} alt="фото"/>}
+            {msg.text&&<div style={{fontSize:12,color:"#2d4a2e"}}>{msg.text}</div>}
+            <div style={{fontSize:9,color:"#bdbdbd",marginTop:3,textAlign:"right"}}>{new Date(msg.ts).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}</div>
+          </div>
+        </div>;})}
+        <div ref={chatEndRef}/>
+      </div>
+      <div style={{padding:"9px 10px",borderTop:"1px solid #f1f8e9",display:"flex",gap:7,alignItems:"center"}}>
+        <input style={{flex:1,border:"1.5px solid #e8f5e9",borderRadius:9,padding:"7px 10px",fontSize:13,fontFamily:"'Geologica',sans-serif",outline:"none",background:"#fafafa"}} placeholder="Написать..." value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&chatInput.trim())sendMsg(chatInput.trim());}}/>
+        <label style={{width:30,height:30,borderRadius:"50%",background:"#f1f8e9",border:"1.5px solid #c8e6c9",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,flexShrink:0}}>
+          📷<input type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{const f=e.target.files[0];if(!f)return;const c=await compress(f);sendMsg("",c);e.target.value="";}}/>
+        </label>
+        <button onClick={()=>{if(chatInput.trim())sendMsg(chatInput.trim());}} style={{width:30,height:30,borderRadius:"50%",background:"#4caf50",border:"none",color:"#fff",cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>→</button>
+      </div>
+    </div>}
+
+    {/* ── MODALS ── */}
+    {modal==="addDish"&&<Modal title="➕ Новое блюдо" onClose={()=>setModal(null)}>
+      <input style={S.inp} placeholder="Название" value={modalData.name||""} onChange={e=>setModalData({...modalData,name:e.target.value})}/>
+      <EmojiPicker val={modalData.emoji||"🍽️"} onPick={e=>setModalData({...modalData,emoji:e})}/>
+      <div style={{fontSize:12,color:"#81c784",marginBottom:12}}>Ингредиенты и тару добавляйте после создания</div>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button style={S.cancelBtnLg} onClick={()=>setModal(null)}>Отмена</button>
+        <button className="add-btn" style={S.addBtn} onClick={addDish}>Создать</button>
+      </div>
+    </Modal>}
+    {modal==="addIng"&&<Modal title="🥬 Новый ингредиент" onClose={()=>setModal(null)}>
+      <input style={S.inp} placeholder="Название" value={modalData.name||""} onChange={e=>setModalData({...modalData,name:e.target.value})}/>
+      <div style={{marginBottom:10}}>
+        <div style={{fontSize:12,color:"#81c784",marginBottom:6}}>Единица</div>
+        <div style={{display:"flex",gap:6}}>{UNITS.map(u=><button key={u} onClick={()=>setModalData({...modalData,unit:u})} style={{flex:1,padding:"8px 0",borderRadius:16,fontSize:12,cursor:"pointer",background:modalData.unit===u?"#4caf50":"#f1f8e9",color:modalData.unit===u?"#fff":"#4caf50",border:`1.5px solid ${modalData.unit===u?"#4caf50":"#c8e6c9"}`}}>{u}</button>)}</div>
+      </div>
+      <select style={S.inp} value={modalData.category||"Овощи"} onChange={e=>setModalData({...modalData,category:e.target.value})}>
+        {Object.keys(CC).map(c=><option key={c}>{c}</option>)}
+      </select>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button style={S.cancelBtnLg} onClick={()=>setModal(null)}>Отмена</button>
+        <button className="add-btn" style={S.addBtn} onClick={addIng}>Добавить</button>
+      </div>
+    </Modal>}
+    {modal==="addTara"&&<Modal title="📦 Новая тара" onClose={()=>setModal(null)}>
+      <input style={S.inp} placeholder="Название (пр. Контейнер 500мл)" value={modalData.name||""} onChange={e=>setModalData({...modalData,name:e.target.value})}/>
+      <input style={S.inp} type="number" placeholder="Стоимость (₽)" value={modalData.cost||""} onFocus={sel} onChange={e=>setModalData({...modalData,cost:e.target.value})}/>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button style={S.cancelBtnLg} onClick={()=>setModal(null)}>Отмена</button>
+        <button className="add-btn" style={S.addBtn} onClick={addTara}>Добавить</button>
+      </div>
+    </Modal>}
+    {modal==="addCook"&&<Modal title="👨‍🍳 Новый повар" onClose={()=>setModal(null)}>
+      <input style={S.inp} placeholder="Имя" value={modalData.name||""} onChange={e=>setModalData({...modalData,name:e.target.value})}/>
+      <input style={S.inp} type="number" placeholder="Ставка (₽/день)" value={modalData.salary||""} onFocus={sel} onChange={e=>setModalData({...modalData,salary:e.target.value})}/>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button style={S.cancelBtnLg} onClick={()=>setModal(null)}>Отмена</button>
+        <button className="add-btn" style={S.addBtn} onClick={addCook}>Добавить</button>
+      </div>
+    </Modal>}
+    {modal==="costError"&&<Modal title="⚠️ Нет данных о ценах" onClose={()=>setModal(null)}>
+      <div style={{fontSize:13,color:"#555",marginBottom:10}}>Блюдо <strong>«{modalData.dishName}»</strong> — нет цен закупки для:</div>
+      {(modalData.missing||[]).map(name=><div key={name} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"#ffebee",borderRadius:9,border:"1px solid #ef9a9a",marginBottom:5}}>
+        <span style={{color:"#e53935"}}>●</span><span style={{fontSize:13,fontWeight:500,color:"#c62828"}}>{name}</span>
+      </div>)}
+      <div style={{fontSize:12,color:"#81c784",background:"#f1f8e9",padding:"9px 12px",borderRadius:9,marginTop:10}}>
+        💡 Добавьте закупку с указанием ингредиента во вкладке <strong>«🛒 Закупки»</strong>
+      </div>
+    </Modal>}
+  </div>;
+}
+
+// ── DishBlock ─────────────────────────────────────────────────────────────────
+function DishBlock({dish,ingredients,taraList,cost,missing,onUpdate,onDelete,getIngCostPer,onCostError}){
+  const [exp,setExp]=useState(false);const [showDrop,setShowDrop]=useState(false);const [showEmoji,setShowEmoji]=useState(false);
+  const CC={"Зелень":"#4ade80","Бобовые":"#fb923c","Фрукты":"#f472b6","Крупы":"#facc15","Масла":"#a78bfa","Овощи":"#34d399","Семена":"#60a5fa","Напитки":"#38bdf8","Орехи":"#d97706","Белок":"#e879f9","Специи":"#f87171"};
+  const sel=e=>{const t=e.target;setTimeout(()=>t.select(),0);};
+  const [edIngId,setEdIngId]=useState(null);const [edAmt,setEdAmt]=useState("");const edRef=useRef();
+  useEffect(()=>{if(edIngId&&edRef.current)edRef.current.focus();},[edIngId]);
+  const [addIngId,setAddIngId]=useState("");const [addAmt,setAddAmt]=useState("");
+  const [edTara,setEdTara]=useState(false);const [taraDr,setTaraDr]=useState("");const taraRef=useRef();
+  useEffect(()=>{if(edTara&&taraRef.current)taraRef.current.focus();},[edTara]);
+  const commitTara=()=>{const v=parseFloat(taraDr);onUpdate(dish.id,{taraCost:isNaN(v)?0:v});setEdTara(false);};
+  const avail=ingredients.filter(i=>!dish.ingredients.map(d=>d.id).includes(i.id));
+  return <div style={{background:"#fff",borderRadius:16,border:`2px solid ${exp?"#a5d6a7":"#e8f5e9"}`,marginBottom:10,overflow:"visible"}}>
+    <div onClick={()=>setExp(v=>!v)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 15px",cursor:"pointer",borderRadius:16}}>
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <span onClick={e=>{e.stopPropagation();setShowEmoji(v=>!v);}} style={{fontSize:34,cursor:"pointer"}} title="Сменить иконку">{dish.emoji}</span>
+        <div>
+          <div style={{fontFamily:"'Unbounded',sans-serif",fontWeight:700,fontSize:13,color:"#1b5e20"}}>{dish.name}</div>
+          {missing.length>0?<div style={{marginTop:3,display:"flex",alignItems:"center",gap:5}}>
+            <span style={{fontSize:11,color:"#e53935",fontWeight:600}}>⚠️ Нет цен</span>
+            <button onClick={e=>{e.stopPropagation();onCostError();}} style={{fontSize:10,color:"#e53935",background:"#ffebee",border:"1px solid #ef9a9a",borderRadius:7,padding:"1px 6px",cursor:"pointer"}}>подробнее</button>
+          </div>:cost>0?<div style={{marginTop:3,fontSize:12,color:"#e65100",fontWeight:600}}>с/с {cost.toFixed(2)} ₽</div>:null}
+        </div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <span style={{fontSize:10,color:"#a5d6a7",background:"#f1f8e9",padding:"2px 7px",borderRadius:10}}>{dish.ingredients.length} ингр.</span>
+        <span style={{fontSize:15,color:"#a5d6a7",display:"inline-block",transform:exp?"rotate(180deg)":"none",transition:"transform 0.2s"}}>▾</span>
+      </div>
+    </div>
+    {showEmoji&&<div style={{padding:"0 15px 10px"}}><EmojiPicker val={dish.emoji} onPick={e=>{onUpdate(dish.id,{emoji:e});setShowEmoji(false);}}/></div>}
+    {exp&&<div style={{borderTop:"1.5px solid #f1f8e9",padding:"0 15px 12px"}}>
+      <div style={{display:"flex",alignItems:"center",padding:"7px 0 4px",fontSize:9,color:"#bdbdbd",textTransform:"uppercase",letterSpacing:"0.5px",fontWeight:600,borderBottom:"1px solid #f5f5f5"}}>
+        <span style={{flex:1}}>Ингредиент</span><span style={{width:140,textAlign:"center"}}>Количество</span><span style={{width:70,textAlign:"right"}}>С/С</span><span style={{width:28}}/>
+      </div>
+      {dish.ingredients.map(di=>{
+        const ing=ingredients.find(i=>i.id===di.id);if(!ing)return null;
+        const cp=getIngCostPer(di.id);const lc=cp!==null?cp*di.amount:null;
+        const isEd=edIngId===di.id;
+        return <div key={di.id} style={{display:"flex",alignItems:"center",gap:7,padding:"6px 2px",borderBottom:"1px solid #fafafa"}}>
+          <span style={{width:8,height:8,borderRadius:"50%",background:CC[ing.category]||"#aaa",flexShrink:0}}/>
+          <span style={{flex:1,fontSize:13,color:"#2d4a2e",fontWeight:500}}>{ing.name}</span>
+          <div style={{width:140,display:"flex",justifyContent:"center"}}>
+            {isEd?<div style={{display:"flex",alignItems:"center",gap:4}}>
+              <input ref={edRef} type="number" min="0" step="0.001" style={{width:70,padding:"4px 6px",borderRadius:7,border:"1.5px solid #4caf50",fontSize:13,background:"#fff",color:"#2d4a2e",textAlign:"right"}} value={edAmt} onChange={e=>setEdAmt(e.target.value)} onFocus={sel} onKeyDown={e=>{if(e.key==="Enter"){const v=parseFloat(edAmt);if(!isNaN(v)&&v>=0)onUpdate(dish.id,{ingredients:dish.ingredients.map(d=>d.id===di.id?{...d,amount:v}:d)});setEdIngId(null);}if(e.key==="Escape")setEdIngId(null);}} onBlur={()=>{const v=parseFloat(edAmt);if(!isNaN(v)&&v>=0)onUpdate(dish.id,{ingredients:dish.ingredients.map(d=>d.id===di.id?{...d,amount:v}:d)});setEdIngId(null);}}/>
+              <span style={{fontSize:10,color:"#9e9e9e"}}>{ing.unit}</span>
+            </div>:<button onClick={()=>{setEdAmt(String(di.amount));setEdIngId(di.id);}} style={{display:"flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:16,border:"1.5px solid #e8f5e9",background:"#fafff8",cursor:"pointer"}}>
+              <span style={{fontSize:13,fontWeight:600,color:"#2d4a2e"}}>{di.amount}</span>
+              <span style={{fontSize:10,color:"#81c784"}}>{ing.unit}</span>
+              <span style={{fontSize:10,color:"#c8e6c9"}}>✎</span>
+            </button>}
+          </div>
+          <span style={{width:70,textAlign:"right",fontSize:12,fontWeight:500,color:lc!==null?"#e65100":"#f57f17"}}>{lc!==null?`${lc.toFixed(2)} ₽`:"нет цены"}</span>
+          <button style={{width:24,height:24,border:"none",background:"none",color:"#d0d0d0",cursor:"pointer",fontSize:12,borderRadius:5}} onClick={()=>onUpdate(dish.id,{ingredients:dish.ingredients.filter(d=>d.id!==di.id)})}>✕</button>
+        </div>;
+      })}
+      {/* Tara row */}
+      <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 2px",borderTop:"1px solid #f1f8e9",marginTop:4}}>
+        <span>📦</span>
+        <span style={{fontSize:13,color:"#7b6a00",fontWeight:600,flexShrink:0}}>Тара</span>
+        <select style={{flex:1,padding:"5px 8px",borderRadius:9,border:"1.5px solid #e8f5e9",fontSize:12,fontFamily:"'Geologica',sans-serif",background:"#fafafa",color:"#2d4a2e"}}
+          value={dish.taraId||""}
+          onChange={e=>{const tid=e.target.value?Number(e.target.value):null;const t=taraList.find(x=>x.id===tid);onUpdate(dish.id,{taraId:tid,taraCost:t?t.cost:0,taraName:t?t.name:""});}}>
+          <option value="">— без тары —</option>
+          {taraList.map(t=><option key={t.id} value={t.id}>{t.name} ({t.cost} ₽)</option>)}
+        </select>
+        <span style={{fontSize:12,fontWeight:500,color:dish.taraCost>0?"#e65100":"#ccc",whiteSpace:"nowrap"}}>{dish.taraCost>0?`${dish.taraCost} ₽`:"—"}</span>
+      </div>
+      {/* Add ingredient */}
+      <div style={{display:"flex",alignItems:"center",gap:7,marginTop:10}}>
+        <select style={{flex:2,padding:"6px 8px",borderRadius:9,border:"1.5px solid #e8f5e9",fontSize:12,fontFamily:"'Geologica',sans-serif",background:"#fafafa",color:"#2d4a2e"}} value={addIngId} onChange={e=>setAddIngId(e.target.value)}>
+          <option value="">+ Добавить ингредиент</option>
+          {avail.map(i=><option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+        </select>
+        {addIngId&&<input type="number" min="0" step="0.001" style={{width:80,padding:"6px 8px",borderRadius:9,border:"1.5px solid #e8f5e9",fontSize:12,background:"#fafafa",color:"#2d4a2e"}} placeholder="кол-во" value={addAmt} onFocus={sel} onChange={e=>setAddAmt(e.target.value)}/>}
+        {addIngId&&addAmt&&<button style={{padding:"6px 12px",background:"#4caf50",color:"#fff",border:"none",borderRadius:9,fontSize:12,cursor:"pointer"}} onClick={()=>{onUpdate(dish.id,{ingredients:[...dish.ingredients,{id:Number(addIngId),amount:Number(addAmt)}]});setAddIngId("");setAddAmt("");}}>Добавить</button>}
+        {cost>0&&<span style={{marginLeft:"auto",fontSize:12,color:"#e65100",fontWeight:600,whiteSpace:"nowrap"}}>с/с {cost.toFixed(2)} ₽</span>}
+        <button style={{width:28,height:28,border:"none",background:"#f5f5f5",color:"#bdbdbd",cursor:"pointer",fontSize:13,borderRadius:7}} onClick={()=>onDelete(dish.id)}>🗑</button>
+      </div>
+    </div>}
+  </div>;
+}
+
+// ── DayRow ────────────────────────────────────────────────────────────────────
+function DayRow({dish,portions,dishCost,rowTotal,readOnly,chefDone,onSet}){
+  const [ed,setEd]=useState(false);const [dr,setDr]=useState("");const ref=useRef();
+  useEffect(()=>{if(ed&&ref.current)ref.current.focus();},[ed]);
+  const commit=()=>{onSet(Math.max(0,parseInt(dr)||0));setEd(false);};
+  const active=portions>0;
+  return <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,marginBottom:5,border:`1.5px solid ${active?"#c8e6c9":"#f0f0f0"}`,background:active?"#fafff8":"#fff",opacity:chefDone?0.5:1}}>
+    <span style={{fontSize:22,flexShrink:0,opacity:active?1:0.4}}>{dish.emoji}</span>
+    <div style={{flex:1,minWidth:0}}>
+      <span style={{fontFamily:"'Unbounded',sans-serif",fontWeight:700,fontSize:12,color:"#1b5e20",opacity:active?1:0.55}}>{dish.name}</span>
+      {chefDone&&<span style={{marginLeft:8,fontSize:11,color:"#4caf50",fontWeight:600}}>✓ Готово</span>}
+    </div>
+    <span style={{width:90,textAlign:"center",fontSize:12,color:dishCost>0?"#e65100":"#ccc",fontWeight:500}}>{dishCost>0?`${dishCost.toFixed(2)} ₽`:"—"}</span>
+    <div style={{width:130,display:"flex",justifyContent:"center"}}>
+      {ed&&!readOnly?<div style={{display:"flex",alignItems:"center",gap:4}}>
+        <input ref={ref} type="number" min="0" step="1" style={{width:56,padding:"4px 7px",borderRadius:8,border:"1.5px solid #4caf50",fontSize:13,textAlign:"right",background:"#fff",color:"#2d4a2e"}} value={dr} onChange={e=>setDr(e.target.value)} onFocus={e=>{const t=e.target;setTimeout(()=>t.select(),0);}} onKeyDown={e=>{if(e.key==="Enter")commit();if(e.key==="Escape")setEd(false);}} onBlur={commit}/>
+        <button style={{padding:"3px 7px",background:"#4caf50",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12}} onMouseDown={e=>{e.preventDefault();commit();}}>✓</button>
+      </div>:<button style={{display:"flex",alignItems:"center",gap:3,padding:"4px 9px",borderRadius:18,border:`1.5px solid ${active?"#a5d6a7":"#e0e0e0"}`,background:active?"#e8f5e9":"#f5f5f5",cursor:readOnly?"default":"pointer"}} onClick={readOnly?undefined:()=>{setDr(String(portions));setEd(true);}}>
+        <span style={{fontSize:13,fontWeight:600,color:active?"#2e7d32":"#999"}}>{portions}</span>
+        <span style={{fontSize:10,color:active?"#81c784":"#bbb"}}>порц.</span>
+        {!readOnly&&<span style={{fontSize:10,color:"#c8e6c9"}}>✎</span>}
+      </button>}
+    </div>
+    <span style={{width:100,textAlign:"right",fontSize:13,fontWeight:rowTotal>0?700:400,color:rowTotal>0?"#e65100":"#ccc"}}>{rowTotal>0?`${rowTotal.toFixed(2)} ₽`:"—"}</span>
+  </div>;
+}
+
+// ── PurchaseForm ──────────────────────────────────────────────────────────────
+function PurchaseForm({ingredients,onSave,onCancel,data,setData}){
+  const d=data||{};
+  const selIng=ingredients.find(i=>i.id===Number(d.ingId));
+  const sel=e=>{const t=e.target;setTimeout(()=>t.select(),0);};
+  return <div style={{background:"#fff",border:"2px solid #4caf50",borderRadius:12,padding:"14px",marginBottom:12}}>
+    <div style={{fontFamily:"'Unbounded',sans-serif",fontSize:12,fontWeight:700,color:"#2e7d32",marginBottom:10}}>Новая закупка</div>
+    <input style={{width:"100%",padding:"8px 11px",borderRadius:10,border:"1.5px solid #e8f5e9",fontSize:14,fontFamily:"'Geologica',sans-serif",marginBottom:8,background:"#fafafa",color:"#2d4a2e"}} placeholder="Поставщик *" value={d.supplier||""} onChange={e=>setData({...d,supplier:e.target.value})}/>
+    <select style={{width:"100%",padding:"8px 11px",borderRadius:10,border:"1.5px solid #e8f5e9",fontSize:13,fontFamily:"'Geologica',sans-serif",marginBottom:8,background:"#fafafa",color:"#2d4a2e"}} value={d.ingId||""} onChange={e=>setData({...d,ingId:e.target.value})}>
+      <option value="">— ингредиент (необязательно) —</option>
+      {ingredients.map(i=><option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+    </select>
+    {d.ingId&&<div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
+      <input type="number" min="0" step="0.001" style={{flex:1,padding:"8px 11px",borderRadius:10,border:"1.5px solid #e8f5e9",fontSize:13,background:"#fafafa",color:"#2d4a2e"}} placeholder="Количество" value={d.quantity||""} onFocus={sel} onChange={e=>setData({...d,quantity:e.target.value})}/>
+      <span style={{fontSize:12,color:"#9e9e9e",whiteSpace:"nowrap"}}>{selIng?.unit||""}</span>
+    </div>}
+    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:d.ingId&&d.quantity&&d.amount?8:0}}>
+      <input type="number" min="0" step="0.01" style={{flex:1,padding:"8px 11px",borderRadius:10,border:"1.5px solid #e8f5e9",fontSize:13,background:"#fafafa",color:"#2d4a2e"}} placeholder="Сумма (₽) *" value={d.amount||""} onFocus={sel} onChange={e=>setData({...d,amount:e.target.value})} onKeyDown={e=>{if(e.key==="Enter")onSave();}}/>
+      <span style={{fontSize:12,color:"#9e9e9e"}}>₽</span>
+    </div>
+    {d.ingId&&d.quantity&&d.amount&&<div style={{background:"#f9fbe7",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#558b2f",marginBottom:8}}>
+      💡 Цена: {(Number(d.amount)/Number(d.quantity)).toFixed(3)} ₽/{selIng?.unit}
+    </div>}
+    <div style={{display:"flex",gap:7,justifyContent:"flex-end"}}>
+      <button style={{padding:"8px 13px",background:"#f5f5f5",border:"none",borderRadius:16,fontSize:13,cursor:"pointer",color:"#555"}} onClick={onCancel}>Отмена</button>
+      <button style={{padding:"8px 16px",background:"#4caf50",color:"#fff",border:"none",borderRadius:18,fontSize:13,fontWeight:500,cursor:"pointer"}} onClick={onSave}>Сохранить</button>
+    </div>
+  </div>;
+}
+
+document.getElementById("loading").style.display="none";
+document.getElementById("root").style.display="block";
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+<script>if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));</script>
+</body>
+</html>
