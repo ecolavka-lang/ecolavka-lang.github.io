@@ -1,4 +1,4 @@
-const CACHE = "ecolavka-v2";
+const CACHE = "ecolavka-v3";
 const ASSETS = ["/", "/index.html", "/chef.html", "/manifest.json"];
 
 self.addEventListener("install", e => {
